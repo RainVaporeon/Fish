@@ -1,6 +1,7 @@
 package com.spiritlight.chess.fish.internal.utils.board;
 
-import com.spiritlight.chess.fish.internal.utils.arrays.IntArray;
+import com.spiritlight.fishutils.misc.arrays.primitive.IntArray;
+
 
 public class KingBitboard extends GameBitboard {
     private static final IntArray early;
@@ -28,7 +29,7 @@ public class KingBitboard extends GameBitboard {
     );
 
     static {
-        IntArray array = IntArray.create(64, -25).toMutable();
+        IntArray array = IntArray.create(64, i -> -25).toMutable();
         array.set(56, 40);
         array.set(57, 40);
         array.set(62, 40);

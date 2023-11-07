@@ -32,6 +32,18 @@ public class Piece {
         return (piece & type) != 0;
     }
 
+    public static int color(int piece) {
+        return piece & COLOR_MASK;
+    }
+
+    public static String asString(String piece) {
+        try {
+            return asString(Integer.parseInt(piece));
+        } catch (NumberFormatException ex) {
+            return "";
+        }
+    }
+
     public static String asString(int piece) {
         StringBuilder builder = new StringBuilder();
         if((piece & WHITE) != 0) builder.append("White").append(" ");
@@ -39,13 +51,13 @@ public class Piece {
         if((piece & COLOR_MASK) == 0) builder.append("No-Color").append(" ");
         int filter = piece & ~COLOR_MASK;
         switch (filter) {
-            case PAWN -> builder.append("Pawn");
+            case PAWN ->   builder.append("Pawn");
             case BISHOP -> builder.append("Bishop");
             case KNIGHT -> builder.append("Knight");
-            case ROOK -> builder.append("Rook");
-            case QUEEN -> builder.append("Queen");
-            case KING -> builder.append("King");
-            default -> builder.append("Unknown Piece ").append(filter);
+            case ROOK ->   builder.append("Rook");
+            case QUEEN ->  builder.append("Queen");
+            case KING ->   builder.append("King");
+            default ->     builder.append("Unknown Piece Type ").append(filter);
         }
         return builder.toString();
     }

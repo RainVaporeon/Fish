@@ -23,6 +23,20 @@ public class BoardHelper {
         return position / 8;
     }
 
+    public static String getPositionString(int position) {
+        return "" + (char) ('a' + getFile(position)) + (char) ('1' + getRank(position));
+    }
+
+    /**
+     * Converts the position specified in {@link BoardMap} to
+     * the kind stored in this engine's FEN parser system.
+     * @param position The position
+     * @return the FEN representation
+     */
+    public static int getFENPosition(int position) {
+        return ((position % 8) << 4) + (position / 8);
+    }
+
     /**
      * Retrieves the mask for checking for passed pawns
      * @param position the position

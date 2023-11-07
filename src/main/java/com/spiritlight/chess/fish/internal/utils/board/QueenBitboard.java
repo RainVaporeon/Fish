@@ -1,9 +1,9 @@
 package com.spiritlight.chess.fish.internal.utils.board;
 
-import com.spiritlight.chess.fish.internal.utils.arrays.IntArray;
+import com.spiritlight.fishutils.misc.arrays.primitive.IntArray;
 
 public class QueenBitboard extends GameBitboard {
-    private static final IntArray empty = IntArray.createEmpty(64);
+    private static final IntArray empty = IntArray.create(64, i -> 0);
 
     private static final IntArray middle = IntArray.fromArray(
             -28,   0,  29,  12,  59,  44,  43,  45,

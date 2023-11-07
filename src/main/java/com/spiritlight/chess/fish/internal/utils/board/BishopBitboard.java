@@ -1,6 +1,6 @@
 package com.spiritlight.chess.fish.internal.utils.board;
 
-import com.spiritlight.chess.fish.internal.utils.arrays.IntArray;
+import com.spiritlight.fishutils.misc.arrays.primitive.IntArray;
 
 public class BishopBitboard extends GameBitboard {
     // Ideally stay in the diagonals and get away from the center

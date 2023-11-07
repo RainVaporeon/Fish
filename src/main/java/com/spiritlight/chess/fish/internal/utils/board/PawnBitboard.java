@@ -1,6 +1,6 @@
 package com.spiritlight.chess.fish.internal.utils.board;
 
-import com.spiritlight.chess.fish.internal.utils.arrays.IntArray;
+import com.spiritlight.fishutils.misc.arrays.primitive.IntArray;
 
 public class PawnBitboard extends GameBitboard {
 

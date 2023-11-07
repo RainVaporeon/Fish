@@ -5,7 +5,7 @@ import static com.spiritlight.chess.fish.game.utils.GameConstants.*;
 
 public class FEN {
 
-    public static final String INITIAL_POSITION = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 0";
+    public static final String INITIAL_POSITION = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
     public static int[] getInitialPosition() {
         return load(INITIAL_POSITION);

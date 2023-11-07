@@ -5,58 +5,76 @@ import com.spiritlight.chess.fish.game.FEN;
 import com.spiritlight.chess.fish.game.Piece;
 import com.spiritlight.chess.fish.game.utils.board.BoardMap;
 import com.spiritlight.chess.fish.game.utils.game.Move;
+import com.spiritlight.chess.fish.game.utils.game.MovementEvent;
+import com.spiritlight.chess.fish.internal.InternLogger;
+import com.spiritlight.chess.fish.internal.utils.board.GameBitboard;
 import com.spiritlight.chess.fish.internal.utils.resources.Resources;
 import com.spiritlight.fishutils.misc.ThrowingRunnable;
 import com.spiritlight.fishutils.utils.Stopwatch;
 
 import java.util.Arrays;
 import java.util.Objects;
+import java.util.function.BooleanSupplier;
 import java.util.stream.StreamSupport;
 
 import static com.spiritlight.chess.fish.game.Piece.*;
 import static com.spiritlight.chess.fish.game.utils.GameConstants.*;
 
+/**
+ * Makeshift class about testing basic functionalities and make sure
+ * the fundamentals do not fail.
+ */
 public class Test {
     public static void main(String[] args) {
-        System.out.printf("9=%s, 17=%s\n", Piece.asString(9), Piece.asString(17));
+        InternLogger.setEnabled(true);
+
         Stopwatch timer = new Stopwatch();
         timer.start();
         testFenString(timer); // Contains I/O to receive off-heap data, fence internally instead.
-        long fen = timer.get("fen");
+        timer.record("fen");
         timer.fence("gen");
         generateBoard(FEN.getInitialPosition());
-        long gen = timer.get("gen");
+        timer.record("gen");
         timer.fence("parse");
         testParsing();
-        long parse = timer.get("parse");
+        timer.record("parse");
         timer.fence("mask");
         testMasking();
-        long mask = timer.get("mask");
+        timer.record("mask");
         timer.fence("move");
         testMove();
-        long move = timer.get("move");
+        timer.record("move");
         timer.fence("board");
         testBoard();
-        long board = timer.get("board");
-        long elapsed = timer.stop();
-        System.out.printf("""
-                Test finished.
-                
-                Total time elapsed: %dns (~%.2fms)
-                FEN time elapsed: %dns (~%.2fms)
-                Board generation time elapsed: %dns (~%.2fms)
-                FEN parse time elapsed: %dns (~%.2fms)
-                Masking time elapsed: %dns (~%.2fms)
-                Move time elapsed: %dns (~%.2fms)
-                Board parsing time elapsed: %dns (~%.2fms)
-                """,
-                elapsed, elapsed / 1000000d,
-                fen, fen / 1000000d,
-                gen, gen / 1000000d,
-                parse, parse / 1000000d,
-                mask, mask / 1000000d,
-                move, move / 1000000d,
-                board, board / 1000000d);
+        timer.record("move");
+        timer.fence("play");
+        testBoardMove();
+        timer.record("play");
+        timer.fence("bitboard.load");
+        testBitboardLoad();
+        timer.record("bitboard.load");
+        System.out.println(timer.getRecordString());
+    }
+
+    private static void testBitboardLoad() {
+        GameBitboard.init();
+    }
+
+    private static void testBoardMove() {
+        BoardMap board = BoardMap.initialize();
+        Move move = Move.of("e2", "e4");
+        MovementEvent event = board.update(move);
+        assertFalse(event::illegal, "Illegal movement for legal move: for move " + move);
+        assertEquals(event.capturedPiece(), NONE, "Unexpected capture: " + event.capturedPiece());
+        assertEquals(event.capturingPiece(), WHITE | PAWN, "Unexpected source: " + event.capturingPiece());
+        assertEquals(board.toFENString(), "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1", "Unexpected FEN");
+        Move illegal = Move.of("e4, e6");
+        MovementEvent illegalEvent = board.update(illegal);
+        assertTrue(illegalEvent::illegal, "Illegal movement was legal: for move " + illegalEvent);
+        assertEquals(illegalEvent, MovementEvent.ILLEGAL, "Move type is not of ILLEGAL type.");
+        assertEquals(illegalEvent.capturingPiece(), NONE, "Illegal event capturing piece was not none: " + illegalEvent.capturingPiece());
+        assertEquals(illegalEvent.capturedPiece(), NONE, "Illegal event captured piece was not none: " + illegalEvent.capturedPiece());
+        assertEquals(board.toFENString(), "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1", "Unexpected FEN after illegal move");
     }
 
     private static void testBoard() {
@@ -196,15 +214,44 @@ public class Test {
         };
     }
 
+    private static void assertNotEquals(Object o1, Object o2, String message) {
+        System.out.print("Assertion check: " + o1 + " not equals " + o2 + "...");
+        if(Objects.equals(o1, o2)) {
+            System.err.printf("""
+                    Two values matches:
+                    %s
+                    %s
+                    """, o1, o2);
+            System.err.println("If the objects are numeric, here's the parsed piece type:");
+            System.err.println(Piece.asString(String.valueOf(o1)) + ", " + Piece.asString(String.valueOf(o2)));
+            System.out.println();
+            throw new AssertionError(message);
+        }
+        System.out.println(" OK");
+    }
+
+    private static void assertFalse(BooleanSupplier sup, String message) {
+        if(sup.getAsBoolean()) throw new AssertionError(message);
+    }
+
+    private static void assertTrue(BooleanSupplier sup, String message) {
+        if(!sup.getAsBoolean()) throw new AssertionError(message);
+    }
+
     private static void assertEquals(Object o1, Object o2, String message) {
+        System.out.print("Assertion check: " + o1 + " equals " + o2 + "...");
         if(!Objects.equals(o1, o2)) {
             System.err.printf("""
                     Two values does not match:
                     %s
                     %s
                     """, o1, o2);
+            System.err.println("If the objects are numeric, here's the parsed piece type:");
+            System.err.println(Piece.asString(String.valueOf(o1)) + ", " + Piece.asString(String.valueOf(o2)));
+            System.out.println();
             throw new AssertionError(message);
         }
+        System.out.println(" OK");
     }
 
     private static void assertFail(ThrowingRunnable tr, String message, Throwable... type) {

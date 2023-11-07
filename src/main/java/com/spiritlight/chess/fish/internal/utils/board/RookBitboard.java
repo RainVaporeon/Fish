@@ -1,9 +1,9 @@
 package com.spiritlight.chess.fish.internal.utils.board;
 
-import com.spiritlight.chess.fish.internal.utils.arrays.IntArray;
+import com.spiritlight.fishutils.misc.arrays.primitive.IntArray;
 
 public class RookBitboard extends GameBitboard {
-    private static final IntArray early = IntArray.createEmpty(64);
+    private static final IntArray early = IntArray.create(64, i -> 0);
 
     private static final IntArray middle = IntArray.fromArray(
         32,  42,  32,  51, 63,  9,  31,  43,

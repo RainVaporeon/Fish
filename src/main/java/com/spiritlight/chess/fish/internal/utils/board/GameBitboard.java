@@ -4,7 +4,8 @@ import com.spiritlight.chess.fish.game.Piece;
 import com.spiritlight.chess.fish.game.utils.GameState;
 import com.spiritlight.chess.fish.internal.InternLogger;
 import com.spiritlight.chess.fish.internal.utils.StableField;
-import com.spiritlight.chess.fish.internal.utils.arrays.IntArray;
+import com.spiritlight.fishutils.misc.arrays.primitive.IntArray;
+
 
 import java.util.HashMap;
 import java.util.Map;
@@ -27,12 +28,46 @@ public abstract class GameBitboard {
     public static void init() {
         if(initialized.get())  return;
         initialized.set(true);
-        register(PAWN, new PawnBitboard());
-        register(KNIGHT, new KnightBitboard());
-        register(BISHOP, new BishopBitboard());
-        register(ROOK, new RookBitboard());
-        register(QUEEN, new QueenBitboard());
-        register(KING, new KingBitboard());
+        GameBitboard pawn = new PawnBitboard();
+        register(PAWN, pawn);
+        register(BLACK | PAWN, GameBitboard.inverse(pawn));
+        GameBitboard knight = new KnightBitboard();
+        register(KNIGHT, knight);
+        register(BLACK | KNIGHT, GameBitboard.inverse(knight));
+        GameBitboard bishop = new BishopBitboard();
+        register(BISHOP, bishop);
+        register(BLACK | BISHOP, GameBitboard.inverse(bishop));
+        GameBitboard rook = new RookBitboard();
+        register(ROOK, rook);
+        register(BLACK | ROOK, GameBitboard.inverse(rook));
+        GameBitboard queen = new QueenBitboard();
+        register(QUEEN, queen);
+        register(BLACK | QUEEN, GameBitboard.inverse(queen));
+        GameBitboard king = new KingBitboard();
+        register(KING, king);
+        register(BLACK | KING, GameBitboard.inverse(king));
+    }
+
+    public static GameBitboard inverse(GameBitboard bitboard) {
+        IntArray early = IntArray.create(64, i -> bitboard.early().getAsInt(63 - i));
+        IntArray middle = IntArray.create(64, i -> bitboard.middle().getAsInt(63 - i));
+        IntArray end = IntArray.create(64, i -> bitboard.end().getAsInt(63 - i));
+        return new GameBitboard() {
+            @Override
+            protected IntArray early() {
+                return early;
+            }
+
+            @Override
+            protected IntArray middle() {
+                return middle;
+            }
+
+            @Override
+            protected IntArray end() {
+                return end;
+            }
+        };
     }
 
     /**
