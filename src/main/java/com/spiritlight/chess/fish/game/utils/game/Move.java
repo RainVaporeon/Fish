@@ -1,7 +1,14 @@
 package com.spiritlight.chess.fish.game.utils.game;
 
+/**
+ * Denoting a move
+ * @param from the square from
+ * @param to the square to
+ */
 public record Move(int from, int to) {
 
+    // As we store this in a long usually, a rank forward
+    // is 8 units, and a file forward is one unit.
     public static final int FORWARD_OFFSET = 8;
     public static final int BACKWARD_OFFSET = -8;
     public static final int LEFT_OFFSET = -1;
@@ -31,6 +38,14 @@ public record Move(int from, int to) {
         return to;
     }
 
+    /**
+     * Converts the string to a move. Note that
+     * the converted position does <b>not</b> correspond
+     * to the code used in {@link com.spiritlight.chess.fish.game.FEN}.
+     * @param from the from line
+     * @param to the to line
+     * @return a move describing the move.
+     */
     public static Move of(String from, String to) {
         int file = from.charAt(0) - 'a';
         int rank = from.charAt(1) - '1';

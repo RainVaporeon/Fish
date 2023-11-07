@@ -244,7 +244,10 @@ public class BoardMap {
         };
 
         MovementEvent error = translate(handlerCode);
+        // error.code() & 0x07 is not 0
         if(error != null) return error;
+
+        // Anything past this line is not going to be interrupted.
 
         halfMove++;
 
@@ -287,6 +290,7 @@ public class BoardMap {
         return new MovementEvent(srcPiece, destPiece, move);
     }
 
+    // Translates the given code to the event
     private static MovementEvent translate(int code) {
         if((code & ~PIECE_MASK) == 0) return null;
         return MovementEvent.getTranslationCode(code);

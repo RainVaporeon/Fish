@@ -6,7 +6,17 @@ import java.util.Objects;
 
 import static com.spiritlight.chess.fish.game.Piece.*;
 
+/**
+ * A movement event, used as a return value from {@link com.spiritlight.chess.fish.game.utils.board.BoardMap#update(Move)}.
+ * <p>
+ * This class contains information about the last move,
+ * describing the capturing piece, captured piece and the move provided.
+ * Alternatively, the piece fields may be used as an error code; reasons
+ * are then obtainable upon converting that specific event to String with
+ * toString().
+ */
 public class MovementEvent {
+    // reserved for translation
     private static final Map<Integer, MovementEvent> errorMap = new HashMap<>();
 
     // Static collection of move reasons
@@ -37,10 +47,17 @@ public class MovementEvent {
     private final int capturedPiece;
     private final Move move;
 
+    /* Private constructor reserved for errors */
+    private MovementEvent(int code, Move move) {
+        this.capturingPiece = code;
+        this.capturedPiece = code;
+        this.move = move;
+    }
+
     public MovementEvent(int capturingPiece, int capturedPiece, Move move) {
         this.capturingPiece = capturingPiece;
         this.capturedPiece = capturedPiece;
-        this.move = move;
+        this.move = Objects.requireNonNull(move);
     }
 
     public static String getReason(MovementEvent src) {
@@ -54,7 +71,7 @@ public class MovementEvent {
      * If it's not null, this indicates
      * that the move was made, not otherwise.
      *
-     * @return whether move is null.
+     * @return whether move is not null.
      */
     public boolean validate() {
         return move != null;
@@ -109,7 +126,7 @@ public class MovementEvent {
     }
 
     private static MovementEvent createError(int code, String message) {
-        MovementEvent event = new MovementEvent(code, code, null) {
+        MovementEvent event = new MovementEvent(code, null) {
             @Override
             public String toString() {
                 return message + " (Code " + Integer.toHexString(code) + ")";

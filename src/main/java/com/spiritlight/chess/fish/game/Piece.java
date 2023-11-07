@@ -31,12 +31,16 @@ public class Piece {
      * @param piece the piece
      * @param type the type
      * @return true if the piece is of the type, false otherwise
-     * @apiNote the parameters are interchangeable.
      */
     public static boolean is(int piece, int type) {
         return (piece & type) != 0;
     }
 
+    /**
+     * Retrieves the color of this piece
+     * @param piece the piece
+     * @return the color
+     */
     public static int color(int piece) {
         return piece & COLOR_MASK;
     }
@@ -45,6 +49,14 @@ public class Piece {
         return piece == BISHOP || piece == ROOK || piece == QUEEN;
     }
 
+    /**
+     * Generates sliding moves for the given sliding piece
+     * at the given location
+     * @param piece the piece
+     * @param src the source location, ranges from 0 to 63
+     * @return an int array describing the sliding squares it can
+     * go to
+     */
     public static int[] sliding(int piece, int src) {
         if (!Piece.isSlidingPiece(piece)) throw new SystemError("Unexpected call to sliding() with parameter " + piece + ", " + src);
         if (piece == PAWN) return new int[]{src + FORWARD_OFFSET};
@@ -100,9 +112,18 @@ public class Piece {
         return ret;
     }
 
+    /**
+     * Internal method to determine the expected reachable squares
+     * by the given piece and location on board
+     * @param piece the piece
+     * @param x the file
+     * @param y the rank
+     * @return maximum amounts of moves this piece can make
+     */
     private static int determineSize(int piece, int x, int y) {
         if(piece == BISHOP) return bishopReachableSquare(x, y);
         if(piece == ROOK) return 14;
+        // TODO: Implement knights
         return 14 + bishopReachableSquare(x, y);
     }
 
@@ -138,6 +159,15 @@ public class Piece {
 
     }
 
+    /**
+     * Converts the string integer representation of this piece
+     * to the string representation of this string
+     * @param piece the piece
+     * @return the string representation of this piece, or an
+     * empty string if the input is not a number
+     * @apiNote this is same as calling {@code Piece#asString(Integer.parseInt(piece))}
+     * @see Piece#asString(int)
+     */
     public static String asString(String piece) {
         try {
             return asString(Integer.parseInt(piece));
@@ -146,12 +176,28 @@ public class Piece {
         }
     }
 
+    /**
+     * Converts the given piece into its string representation.
+     *
+     * The conversion result follows this rule: <pre>
+     *     If the 4th bit is on... append "White "
+     *     If the 5th bit is on... append "Black "
+     *     If neither bits are on... append "No-Color "
+     *     then...
+     *     Retrieve the last 3 bits and converts to the
+     *     value specified, or "Unknown Piece Type {}"
+     * </pre>
+     * where {} is replaced with the last 3 bits and
+     * the hexadecimal representation of the input piece
+     * @param piece the piece
+     * @return the string representation of this piece
+     */
     public static String asString(int piece) {
         StringBuilder builder = new StringBuilder();
         if((piece & WHITE) != 0) builder.append("White").append(" ");
         if((piece & BLACK) != 0) builder.append("Black").append(" ");
         if((piece & COLOR_MASK) == 0) builder.append("No-Color").append(" ");
-        int filter = piece & ~COLOR_MASK;
+        int filter = piece & PIECE_MASK;
         switch (filter) {
             case PAWN ->   builder.append("Pawn");
             case BISHOP -> builder.append("Bishop");
@@ -159,7 +205,7 @@ public class Piece {
             case ROOK ->   builder.append("Rook");
             case QUEEN ->  builder.append("Queen");
             case KING ->   builder.append("King");
-            default ->     builder.append("Unknown Piece Type ").append(filter);
+            default ->     builder.append("Unknown Piece Type ").append(filter).append(" ").append(Integer.toHexString(piece));
         }
         return builder.toString();
     }
