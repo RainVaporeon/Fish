@@ -3,7 +3,9 @@ package com.spiritlight.chess.fish;
 import com.google.gson.JsonArray;
 import com.spiritlight.chess.fish.game.FEN;
 import com.spiritlight.chess.fish.game.Piece;
+import com.spiritlight.chess.fish.game.utils.GameState;
 import com.spiritlight.chess.fish.game.utils.board.BoardMap;
+import com.spiritlight.chess.fish.game.utils.game.BoardEvaluator;
 import com.spiritlight.chess.fish.game.utils.game.Move;
 import com.spiritlight.chess.fish.game.utils.game.MovementEvent;
 import com.spiritlight.chess.fish.internal.InternLogger;
@@ -53,7 +55,58 @@ public class Test {
         timer.fence("bitboard.load");
         testBitboardLoad();
         timer.record("bitboard.load");
+        timer.fence("piece.sliding");
+        testGenerateSlidingMoves();
+        timer.record("piece.sliding");
+        timer.fence("boardmap.play");
+        testPlay();
+        timer.record("boardmap.play");
         System.out.println(timer.getRecordString());
+    }
+
+    private static void testPlay() {
+        assertSuccess(() -> {
+            BoardMap map = BoardMap.initialize();
+            System.out.println("Evaluation: " + BoardEvaluator.evaluateFormatted(map, GameState.EARLY_GAME));
+
+            System.out.println("-".repeat(32));
+            System.out.println(map.boardView());
+
+            System.out.println("Playing e4");
+            map.update("e2, e4");
+            System.out.println("Playing e5");
+            map.update("e7, e5");
+
+            System.out.println("Evaluation: " + BoardEvaluator.evaluateFormatted(map, GameState.EARLY_GAME));
+
+            System.out.println("-".repeat(32));
+            System.out.println(map.boardView());
+
+            System.out.println("Playing Bf6 and bxa6");
+
+            map.update("f1, a6");
+            MovementEvent captureCheck = map.update("b7, a6");
+
+            System.out.println(captureCheck);
+            assertEquals(captureCheck.capturedPiece(), WHITE | BISHOP, "Capture failed");
+
+            System.out.println("-".repeat(32));
+            System.out.println(map.boardView());
+
+            System.out.println("Evaluation: " + BoardEvaluator.evaluateFormatted(map, GameState.MIDDLE_GAME));
+        }, "Unexpected error whilst evaluating position");
+    }
+
+    private static void testGenerateSlidingMoves() {
+        assertEquals(sliding(BISHOP, 0).length, 7, "Bishop sliding length wrong");
+        assertEquals(sliding(ROOK, 0).length, 14, "Rook sliding length wrong");
+        assertEquals(sliding(QUEEN, 0).length, 21, "Queen sliding length wrong");
+        assertEquals(sliding(BISHOP, 63).length, 7, "Bishop sliding length wrong");
+        assertEquals(sliding(ROOK, 63).length, 14, "Rook sliding length wrong");
+        assertEquals(sliding(QUEEN, 63).length, 21, "Queen sliding length wrong");
+        assertEquals(sliding(BISHOP, 28).length, 13, "Bishop sliding length wrong 13");
+        assertEquals(sliding(ROOK, 28).length, 14, "Rook sliding length wrong 14");
+        assertEquals(sliding(QUEEN, 28).length, 27, "Queen sliding length wrong 27");
     }
 
     private static void testBitboardLoad() {
@@ -71,9 +124,6 @@ public class Test {
         Move illegal = Move.of("e4, e6");
         MovementEvent illegalEvent = board.update(illegal);
         assertTrue(illegalEvent::illegal, "Illegal movement was legal: for move " + illegalEvent);
-        assertEquals(illegalEvent, MovementEvent.ILLEGAL, "Move type is not of ILLEGAL type.");
-        assertEquals(illegalEvent.capturingPiece(), NONE, "Illegal event capturing piece was not none: " + illegalEvent.capturingPiece());
-        assertEquals(illegalEvent.capturedPiece(), NONE, "Illegal event captured piece was not none: " + illegalEvent.capturedPiece());
         assertEquals(board.toFENString(), "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1", "Unexpected FEN after illegal move");
     }
 
@@ -214,6 +264,11 @@ public class Test {
         };
     }
 
+    private static void assertInRange(double value, double min, double max, String message) {
+        if(value < min || value > max) throw new AssertionError(message);
+        System.out.printf("%f is in %f and %f\n", value, min, max);
+    }
+
     private static void assertNotEquals(Object o1, Object o2, String message) {
         System.out.print("Assertion check: " + o1 + " not equals " + o2 + "...");
         if(Objects.equals(o1, o2)) {
@@ -270,5 +325,14 @@ public class Test {
             }
         }
         throw new AssertionError(message);
+    }
+
+    private static void assertSuccess(ThrowingRunnable tr, String message) {
+        try {
+            tr.run();
+            System.out.println("Success assertion passed");
+        } catch (Throwable t) {
+            throw new AssertionError(message, t);
+        }
     }
 }

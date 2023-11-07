@@ -3,7 +3,7 @@ package com.spiritlight.chess.fish.internal.utils.board;
 import com.spiritlight.fishutils.misc.arrays.primitive.IntArray;
 
 public class BishopBitboard extends GameBitboard {
-    // Ideally stay in the diagonals and get away from the center
+    // Ideally, stay in the diagonals and get away from the center
     private static final IntArray early = IntArray.fromArray(
             64, 32, 16, 8, 8, 16, 32, 64,
             32, 64, 32, 16, 16, 32, 64, 32,

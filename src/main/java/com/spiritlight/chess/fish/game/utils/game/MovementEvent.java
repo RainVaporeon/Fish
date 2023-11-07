@@ -1,16 +1,20 @@
 package com.spiritlight.chess.fish.game.utils.game;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 
 import static com.spiritlight.chess.fish.game.Piece.*;
 
 public class MovementEvent {
+    private static final Map<Integer, MovementEvent> errorMap = new HashMap<>();
+
     // Static collection of move reasons
     /**
      * Move that is not possible, let it be something blocking the path,
      * or the move is not possible to be reached.
      */
-    public static final MovementEvent ILLEGAL = createError(NONE, "Illegal move");
+    public static final MovementEvent ILLEGAL = createError(0xFFFFFFFF, "Illegal move");
     /**
      * Move that lands on something that has the same color as the
      * source piece
@@ -61,6 +65,10 @@ public class MovementEvent {
         return move == null;
     }
 
+    public int code() {
+        return capturingPiece;
+    }
+
     public int capturingPiece() {
         return capturingPiece;
     }
@@ -96,12 +104,18 @@ public class MovementEvent {
                 "move=" + move + ']';
     }
 
+    public static MovementEvent getTranslationCode(int code) {
+        return errorMap.get(code);
+    }
+
     private static MovementEvent createError(int code, String message) {
-        return new MovementEvent(code, code, null) {
+        MovementEvent event = new MovementEvent(code, code, null) {
             @Override
             public String toString() {
-                return message + "(Code " + Integer.toHexString(code) + ")";
+                return message + " (Code " + Integer.toHexString(code) + ")";
             }
         };
+        errorMap.put(code, event);
+        return event;
     }
 }

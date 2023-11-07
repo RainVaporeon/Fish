@@ -4,21 +4,24 @@ import com.spiritlight.chess.fish.game.FEN;
 import com.spiritlight.chess.fish.game.Piece;
 import com.spiritlight.chess.fish.game.utils.EndType;
 import com.spiritlight.chess.fish.game.utils.GameState;
+import com.spiritlight.chess.fish.game.utils.game.BoardEvaluator;
 import com.spiritlight.chess.fish.game.utils.game.Move;
 import com.spiritlight.chess.fish.game.utils.game.MovementEvent;
 import com.spiritlight.chess.fish.internal.InternLogger;
 import com.spiritlight.chess.fish.internal.exceptions.SystemError;
 import com.spiritlight.chess.fish.internal.utils.StableField;
 import com.spiritlight.fishutils.collections.Pair;
+import com.spiritlight.fishutils.misc.annotations.Modifies;
+import com.spiritlight.fishutils.misc.arrays.primitive.CharacterArray;
+import com.spiritlight.fishutils.misc.arrays.primitive.IntArray;
 
 import java.util.Arrays;
 import java.util.Iterator;
-import java.util.Map;
 
 import static com.spiritlight.chess.fish.game.FEN.*;
 import static com.spiritlight.chess.fish.game.Piece.*;
-import static com.spiritlight.chess.fish.game.utils.game.Move.*;
 import static com.spiritlight.chess.fish.game.utils.GameConstants.*;
+import static com.spiritlight.chess.fish.game.utils.game.Move.FORWARD_OFFSET;
 
 public class BoardMap {
     private static final long PAWN_MASK   = 0xFF00;
@@ -63,22 +66,33 @@ public class BoardMap {
         return enemyBoard.get();
     }
 
+    public MovementEvent update(String move) {
+        return this.update(Move.of(move));
+    }
+
     public MovementEvent update(Move move) {
         // Subtract 1 so we reach 0-index as specified on the layout here.
         int src  = move.sourcePos() - 1;
         int dest = move.destPos() - 1;
 
-        int sourcePiece = this.getPieceAt(src);
-        int destPiece   = this.getPieceAt(dest);
-        InternLogger.getLogger().debug("Move " + move + " extracts src=" + Piece.asString(sourcePiece) + ", dest=" + Piece.asString(destPiece));
-        if(Piece.color(sourcePiece) != color) {
-            InternLogger.getLogger().debug("Piece " + Piece.asString(sourcePiece) + " is not of color " + Piece.asString(color));
-            return color == WHITE ? MovementEvent.WHITE_TO_PLAY : MovementEvent.BLACK_TO_PLAY;
+        int srcPiece  = this.getPieceAt(src);
+        int destPiece = this.getPieceAt(dest);
+        InternLogger.getLogger().debug("Move " + move + " extracts src=" + Piece.asString(srcPiece) + ", dest=" + Piece.asString(destPiece));
+        // Turn checking
+        if(Piece.color(srcPiece) != turn) {
+            InternLogger.getLogger().debug("Piece " + Piece.asString(srcPiece) + " is not of color " + Piece.asString(color));
+            return turn == WHITE ? MovementEvent.WHITE_TO_PLAY : MovementEvent.BLACK_TO_PLAY;
         }
-        if(Piece.color(sourcePiece) == Piece.color(destPiece)) return MovementEvent.CAPTURING_SAME;
-        if(sourcePiece == NONE) return MovementEvent.ILLEGAL;
+        // Destination checking; cannot capture pieces of the same color
+        if(Piece.color(srcPiece) == Piece.color(destPiece)) return MovementEvent.CAPTURING_SAME;
+        // Move checking, cannot move from nothing.
+        if(srcPiece == NONE) return MovementEvent.ILLEGAL;
 
-        return handleMove(sourcePiece, src, dest, destPiece, enemyBoard.get(), move);
+        if(turn == WHITE) {
+            return handleMove(srcPiece, src, dest, destPiece, enemyBoard.get(), move);
+        } else {
+            return this.enemyBoard.get().handleMove(srcPiece, src, dest, destPiece, this, move);
+        }
     }
 
     public Pair<GameState, EndType> getGameState() {
@@ -142,7 +156,31 @@ public class BoardMap {
         return FEN.get(positions);
     }
 
-    private BoardItr itr() {
+    public String boardView() {
+        return String.format("""
+                + - + - + - + - + - + - + - + - +
+                8 %s | %s | %s | %s | %s | %s | %s | %s |
+                + - + - + - + - + - + - + - + - +
+                7 %s | %s | %s | %s | %s | %s | %s | %s |
+                + - + - + - + - + - + - + - + - +
+                6 %s | %s | %s | %s | %s | %s | %s | %s |
+                + - + - + - + - + - + - + - + - +
+                5 %s | %s | %s | %s | %s | %s | %s | %s |
+                + - + - + - + - + - + - + - + - +
+                4 %s | %s | %s | %s | %s | %s | %s | %s |
+                + - + - + - + - + - + - + - + - +
+                3 %s | %s | %s | %s | %s | %s | %s | %s |
+                + - + - + - + - + - + - + - + - +
+                2 %s | %s | %s | %s | %s | %s | %s | %s |
+                + - + - + - + - + - + - + - + - +
+                1 %s | %s | %s | %s | %s | %s | %s | %s |
+                + a + b + b + c + d + f + g + h +
+                
+                """, (Object[]) CharacterArray.create(64, idx -> Piece.asCharacter(this.getPieceAt(63 - idx))).toArray())
+                .concat(String.format("|-Eval:%5.2f-----%5s to play-|", BoardEvaluator.evaluate(this, GameState.EARLY_GAME), (turn == WHITE ? "White" : "Black")));
+    }
+
+    public BoardItr itr() {
         return new BoardItr();
     }
 
@@ -180,46 +218,48 @@ public class BoardMap {
      * @param srcPiece the source piece
      * @param srcPos the source position
      * @param destPos the destination position
-     * @param capturedPiece the captured piece
+     * @param destPiece the captured piece
      * @param enemyMap the enemy BoardMap to update if {@code capturedPiece != null}
      */
-    private MovementEvent handleMove(int srcPiece, int srcPos, int destPos, int capturedPiece, BoardMap enemyMap, Move move) {
+    private MovementEvent handleMove(int srcPiece, int srcPos, int destPos, int destPiece, BoardMap enemyMap, Move move) {
         InternLogger.getLogger().debug("Source: " + srcPos + ", Destination: " + destPos);
         InternLogger.getLogger().debug("State: " + BoardHelper.getPositionString(srcPos + 1) + ", " + BoardHelper.getPositionString(destPos + 1));
-
+        InternLogger.getLogger().debug("Has: " + Piece.asString(srcPiece) + ", To: " + Piece.asString(destPiece));
         long srcMask = this.getMask(srcPos);
         long destMask = this.getMask(destPos);
 
+        /* Verifying the result, 0 is OK
+        * Check should include path checks and other processing,
+        * but should not involve color/piece checking, as we've
+        * checked it before masks were even retrieved.       */
+
+        int handlerCode = switch (srcPiece & ~COLOR_MASK) {
+            case PAWN -> verifyPawn(srcPos, destPos, destPiece);
+            case BISHOP -> verifyBishop(srcPos, destPos);
+            case KNIGHT -> verifyKnight(srcPos, destPos);
+            case ROOK -> verifyRook(srcPos, destPos);
+            case QUEEN -> verifyQueen(srcPos, destPos);
+            case KING -> verifyKing(srcPos, destPos);
+            default -> throw new IllegalStateException("Unexpected value: " + (srcPiece & ~COLOR_MASK));
+        };
+
+        MovementEvent error = translate(handlerCode);
+        if(error != null) return error;
+
+        halfMove++;
+
         /* Calculating 50-move rule and en passant */
         if(Piece.is(srcPiece, PAWN)) {
-            int file = BoardHelper.getFile(srcPos);
-            int destFile = BoardHelper.getFile(destPos);
-            if (Math.abs(file - destFile) > 1) return MovementEvent.ILLEGAL;
-            if (Math.abs(file - destFile) == 1 && capturedPiece == NONE || file - destFile == 0 && capturedPiece != NONE) {
-                return MovementEvent.ILLEGAL;
-            }
-
-            if(Math.abs(BoardHelper.getRank(srcPos) - BoardHelper.getRank(destPos)) == 2) {
-                if((pawnAdvance & getByteMask(file)) == 0) {
-                    InternLogger.getLogger().debug("AND result: " + Integer.toBinaryString(pawnAdvance & getByteMask(file)));
-                    InternLogger.getLogger().debug("Shift: " + file);
-                    InternLogger.getLogger().debug("Pawn Set: " + Integer.toBinaryString(pawnAdvance));
-                    InternLogger.getLogger().debug("Int mask: " + Integer.toBinaryString(getByteMask(file)));
-                    return MovementEvent.ILLEGAL;
-                }
-                // We add one here to restore it back onto its actual represented location
-                enPassantSquare = srcPos + FORWARD_OFFSET + 1;
-                InternLogger.getLogger().debug("En passant square set to " + (srcPos + FORWARD_OFFSET) + " (" + BoardHelper.getPositionString(srcPos + FORWARD_OFFSET) + ")");
-            }
-            pawnAdvance &= ~getByteMask(file);
+            halfMove = 0;
         }
         /* Castle rights too */
         if(Piece.is(srcPiece, KING)) {
             castle &= ~0xFF;
         }
+
         /* Castle rights */
         if(Piece.is(srcPiece, ROOK)) {
-            if(BoardHelper.getFile(srcPos) == 0) {
+            if(this.getFile(srcPos) == 0) {
                 castle &= ~0xF0;
             } else {
                 castle &= ~0x0F;
@@ -231,27 +271,94 @@ public class BoardMap {
         clear(srcPiece & ~COLOR_MASK, srcMask);
         retain(srcPiece & ~COLOR_MASK, destMask);
 
-        halfMove++;
         if(turn == BLACK) {
             fullMove++;
             enemyBoard.get().fullMove++;
         }
 
-        if(!Piece.is(srcPiece, PAWN)) {
-            enPassantSquare = 0; // reset after each move
-        } else {
+        if(destPiece != NONE && enemyMap != null) {
             halfMove = 0;
-        }
-
-        if(capturedPiece != NONE && enemyMap != null) {
-            halfMove = 0;
-            enemyMap.clear(capturedPiece & ~COLOR_MASK, destMask);
+            enemyMap.clear(destPiece & ~COLOR_MASK, destMask);
         }
 
         turn ^= COLOR_MASK;
         enemyBoard.get().turn ^= COLOR_MASK;
 
-        return new MovementEvent(srcPiece, capturedPiece, move);
+        return new MovementEvent(srcPiece, destPiece, move);
+    }
+
+    private static MovementEvent translate(int code) {
+        if((code & ~PIECE_MASK) == 0) return null;
+        return MovementEvent.getTranslationCode(code);
+    }
+
+    // Section to verify the validity of a movement.
+    // If it mutates board structure in the process,
+    // methods are annotated with the @Modifies annotation
+    // with what parameter in this class is mutated.
+
+    // Side note, I kind of forgot why I made the translating
+    // method return null (denoting success) if &~0b111 returns
+    // 0. Leaving it as is though.
+
+    @Modifies({"enPassantSquare", "pawnAdvance"})
+    private int verifyPawn(int srcPos, int destPos, int destPiece) {
+        int file = this.getFile(srcPos);
+        int destFile = this.getFile(destPos);
+        if (Math.abs(file - destFile) > 1) {
+            InternLogger.getLogger().debug("Distance too far horizontally: From " + file + " to " + destFile);
+            return MovementEvent.ILLEGAL.code();
+        }
+        if ((Math.abs(file - destFile) == 1 && destPiece == NONE) || (file - destFile == 0 && destPiece != NONE)) {
+            InternLogger.getLogger().debug("Captures nothing");
+            return MovementEvent.ILLEGAL.code();
+        }
+
+        if(Math.abs(this.getRank(srcPos) - this.getRank(destPos)) == 2) {
+            if((pawnAdvance & getByteMask(file)) == 0) {
+                InternLogger.getLogger().debug("Pawn advance does not match with byte mask");
+                return MovementEvent.ILLEGAL.code();
+            }
+            if(this.getPieceAt(srcPos + (this.color == WHITE ? FORWARD_OFFSET : -FORWARD_OFFSET)) != NONE) {
+                InternLogger.getLogger().debug("Pawn advances into something");
+                return MovementEvent.ILLEGAL.code();
+            }
+            // We add one here to restore it back onto its actual represented location
+            enPassantSquare = srcPos + (this.color == WHITE ? FORWARD_OFFSET : -FORWARD_OFFSET) + 1;
+        }
+        pawnAdvance &= ~getByteMask(file);
+        return 0;
+    }
+
+    private int verifyKnight(int srcPos, int destPos) {
+        return 0;
+    }
+
+    private int verifyBishop(int srcPos, int destPos) {
+        return 0;
+    }
+
+    private int verifyRook(int srcPos, int destPos) {
+        return 0;
+    }
+
+    private int verifyQueen(int srcPos, int destPos) {
+        return 0;
+    }
+
+    private int verifyKing(int srcPos, int destPos) {
+        return 0;
+    }
+
+    // These methods exist to adapt with the aforementioned issue
+    // in #handleMove()
+
+    private int getRank(int src) {
+        return (src + 1) / 8;
+    }
+
+    private int getFile(int src) {
+        return (src + 1) % 8;
     }
 
     /**
@@ -325,7 +432,7 @@ public class BoardMap {
                 """, pawn, knight, bishop, rook, queen, king);
     }
 
-    private class BoardItr implements Iterator<Long> {
+    public class BoardItr implements Iterator<Long> {
         private int cursor = 0;
 
         // Retrieves the latest iterated piece type according to this board

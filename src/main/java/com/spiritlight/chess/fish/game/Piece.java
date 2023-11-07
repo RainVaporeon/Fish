@@ -1,16 +1,21 @@
 package com.spiritlight.chess.fish.game;
 
+import com.spiritlight.chess.fish.game.utils.board.BoardHelper;
+import com.spiritlight.chess.fish.internal.InternLogger;
 import com.spiritlight.chess.fish.internal.annotation.Mask;
 import com.spiritlight.chess.fish.internal.annotation.MaskType;
+import com.spiritlight.chess.fish.internal.exceptions.SystemError;
+
+import static com.spiritlight.chess.fish.game.utils.game.Move.FORWARD_OFFSET;
 
 public class Piece {
-    public static final int NONE = 0b00000000;
-    public static final int PAWN = 0b00000001;
+    public static final int NONE   = 0b00000000;
+    public static final int PAWN   = 0b00000001;
     public static final int KNIGHT = 0b00000010;
     public static final int BISHOP = 0b00000011;
-    public static final int ROOK = 0b00000100;
-    public static final int QUEEN = 0b00000101;
-    public static final int KING = 0b00000110;
+    public static final int ROOK   = 0b00000100;
+    public static final int QUEEN  = 0b00000101;
+    public static final int KING   = 0b00000110;
 
     public static final int WHITE = 0b00001000;
     public static final int BLACK = 0b00010000;
@@ -34,6 +39,103 @@ public class Piece {
 
     public static int color(int piece) {
         return piece & COLOR_MASK;
+    }
+
+    public static boolean isSlidingPiece(int piece) {
+        return piece == BISHOP || piece == ROOK || piece == QUEEN;
+    }
+
+    public static int[] sliding(int piece, int src) {
+        if (!Piece.isSlidingPiece(piece)) throw new SystemError("Unexpected call to sliding() with parameter " + piece + ", " + src);
+        if (piece == PAWN) return new int[]{src + FORWARD_OFFSET};
+        int file = BoardHelper.getFile(src);
+        int rank = BoardHelper.getRank(src);
+        int[] ret = new int[determineSize(piece, file, rank)];
+        int arrIdx = 0;
+        if (piece == ROOK || piece == QUEEN) {
+            for (int i = 0; i < 8; i++) {
+                if (i != file) {
+                    ret[arrIdx++] = i + rank * 8; // L-R
+                }
+                if (i != rank) {
+                    ret[arrIdx++] = file * i * 8; // D-U
+                }
+            }
+        }
+        if (piece == BISHOP || piece == QUEEN) {
+            int mode = 0; // 0: L-T, 1: R-T, 2: L-D, 3: R-D (left-top etc.)
+            int idx = 1; // Starting at 1 excludes itself
+            while (mode >= 0 && mode < 4) {
+                int x, y;
+                switch (mode) {
+                    case 0 -> {
+                        x = file - idx;
+                        y = rank + idx;
+                    }
+                    case 1 -> {
+                        x = file + idx;
+                        y = rank + idx;
+                    }
+                    case 2 -> {
+                        x = file - idx;
+                        y = rank - idx;
+                    }
+                    case 3 -> {
+                        x = file + idx;
+                        y = rank - idx;
+                    }
+                    default -> throw new IllegalStateException("Unexpected value: " + mode);
+                }
+                InternLogger.getLogger().debug("Generated move " + x + ", " + y + " at src " + src + " for piece " + asString(piece));
+                if(x < 0 || x > 7 || y < 0 || y > 7) {
+                    InternLogger.getLogger().debug("Illegal move, skipping it...");
+                    idx = 1; // Start at 1 to exclude itself
+                    mode++;
+                } else {
+                    ret[arrIdx++] = x + 8 * y;
+                    idx++;
+                }
+            }
+        }
+        return ret;
+    }
+
+    private static int determineSize(int piece, int x, int y) {
+        if(piece == BISHOP) return bishopReachableSquare(x, y);
+        if(piece == ROOK) return 14;
+        return 14 + bishopReachableSquare(x, y);
+    }
+
+    private static int bishopReachableSquare(int x, int y) {
+        x++;y++;
+        int tl = Math.min(x, y) - 1;
+        int tr = Math.min(x, 9 - y);
+        int bl = 8 - Math.max(x, 9 - y);
+        int br = 8 - Math.max(x, y) - 1;
+        return tl + tr + bl + br;
+    }
+
+    /**
+     *
+     * @param piece piece type
+     * @return the FEN equivalent of the piece, or '?' if the input
+     * is not of a piece type.
+     */
+    public static char asCharacter(int piece) {
+        char c = switch (piece & ~COLOR_MASK) {
+            case NONE -> ' ';
+            case PAWN -> 'P';
+            case KNIGHT -> 'N';
+            case BISHOP -> 'B';
+            case ROOK -> 'R';
+            case QUEEN -> 'Q';
+            case KING -> 'K';
+            default -> '?';
+        };
+
+        if((piece & COLOR_MASK) == WHITE) return c;
+        return Character.toLowerCase(c);
+
     }
 
     public static String asString(String piece) {
