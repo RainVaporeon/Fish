@@ -71,6 +71,7 @@ public class Test {
 
             System.out.println("-".repeat(32));
             System.out.println(map.boardView());
+            System.out.println(map.flatBoardView());
 
             System.out.println("Playing e4");
             map.update("e2, e4");
@@ -81,6 +82,7 @@ public class Test {
 
             System.out.println("-".repeat(32));
             System.out.println(map.boardView());
+            System.out.println(map.flatBoardView());
 
             System.out.println("Playing Bf6 and bxa6");
 
@@ -92,6 +94,7 @@ public class Test {
 
             System.out.println("-".repeat(32));
             System.out.println(map.boardView());
+            System.out.println(map.flatBoardView());
 
             System.out.println("Evaluation: " + BoardEvaluator.evaluateFormatted(map, GameState.MIDDLE_GAME));
         }, "Unexpected error whilst evaluating position");
@@ -117,6 +120,9 @@ public class Test {
         BoardMap board = BoardMap.initialize();
         Move move = Move.of("e2", "e4");
         MovementEvent event = board.update(move);
+        System.out.println(board.boardView());
+        System.out.println(board.flatBoardView());
+        System.out.println(board.toFENString());
         assertFalse(event::illegal, "Illegal movement for legal move: for move " + move);
         assertEquals(event.capturedPiece(), NONE, "Unexpected capture: " + event.capturedPiece());
         assertEquals(event.capturingPiece(), WHITE | PAWN, "Unexpected source: " + event.capturingPiece());
@@ -298,8 +304,8 @@ public class Test {
         if(!Objects.equals(o1, o2)) {
             System.err.printf("""
                     Two values does not match:
-                    %s
-                    %s
+                    %s [LHS]
+                    %s [RHS]
                     """, o1, o2);
             System.err.println("If the objects are numeric, here's the parsed piece type:");
             System.err.println(Piece.asString(String.valueOf(o1)) + ", " + Piece.asString(String.valueOf(o2)));

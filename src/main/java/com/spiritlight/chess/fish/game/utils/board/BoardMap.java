@@ -71,9 +71,8 @@ public class BoardMap {
     }
 
     public MovementEvent update(Move move) {
-        // Subtract 1 so we reach 0-index as specified on the layout here.
-        int src  = move.sourcePos() - 1;
-        int dest = move.destPos() - 1;
+        int src  = move.sourcePos();
+        int dest = move.destPos();
 
         int srcPiece  = this.getPieceAt(src);
         int destPiece = this.getPieceAt(dest);
@@ -135,13 +134,15 @@ public class BoardMap {
         }
         if(this.color == BLACK) return this.enemyBoard.get().toFENString(); // Convenience purposes only.
         int[] positions = new int[69]; // pos:color
+        int arrIdx = 0;
         for(int i = 0; i < 64; i++) {
             int piece = this.getSelfPieceAt(i, true);
             int enemy = enemyBoard.get().getSelfPieceAt(i, true);
-            if(piece == NONE && enemy == NONE) positions[i] = NONE;
-            if(piece == NONE) positions[i] = enemy;
-            if(enemy == NONE) positions[i] = piece;
+            if(piece == NONE && enemy == NONE) positions[arrIdx] = NONE;
+            if(piece == NONE) positions[arrIdx] = enemy;
+            if(enemy == NONE) positions[arrIdx] = piece;
             if(enemy != NONE && piece != NONE) throw new SystemError(String.format("duplicate position: array=%s, pos=%d, type=%d,%d", Arrays.toString(positions), i, piece, enemy));
+            arrIdx++;
         }
         int castleState = 0;
         if((this.castle & 0x0F) != 0) castleState |= WHITE_CASTLE_KING_SIDE;
@@ -180,6 +181,16 @@ public class BoardMap {
                 .concat(String.format("|-Eval:%5.2f-----%5s to play-|", BoardEvaluator.evaluate(this, GameState.EARLY_GAME), (turn == WHITE ? "White" : "Black")));
     }
 
+    public String flatBoardView() {
+        String str = "0123456789".repeat(7).substring(0, 64).concat("\n");
+        StringBuilder builder = new StringBuilder(64);
+        for(int i = 0; i < 64; i++) {
+            builder.append(Piece.asCharacter(this.getPieceAt(i)));
+        }
+        String other = "\n1bcdefgh2bcdefgh3bcdefgh4bcdefgh5bcdefgh6bcdefgh7bcdefgh8bcdefgh";
+        return str + builder + other;
+    }
+
     public BoardItr itr() {
         return new BoardItr();
     }
@@ -199,7 +210,7 @@ public class BoardMap {
 
     // Retrieves the mask used for FEN
     private long getFENMask(int location) {
-        return 0x8000_0000_0000_0000L >>> location;
+        return Long.MIN_VALUE >>> location;
     }
 
     /**
@@ -222,7 +233,7 @@ public class BoardMap {
      * @param enemyMap the enemy BoardMap to update if {@code capturedPiece != null}
      */
     private MovementEvent handleMove(int srcPiece, int srcPos, int destPos, int destPiece, BoardMap enemyMap, Move move) {
-        InternLogger.getLogger().debug("Source: " + srcPos + ", Destination: " + destPos);
+        InternLogger.getLogger().debug("Source: " + srcPos + ", Destination: " + destPos + " (Origin: " + (srcPos + 1) + ", " + (destPos + 1) + ")");
         InternLogger.getLogger().debug("State: " + BoardHelper.getPositionString(srcPos + 1) + ", " + BoardHelper.getPositionString(destPos + 1));
         InternLogger.getLogger().debug("Has: " + Piece.asString(srcPiece) + ", To: " + Piece.asString(destPiece));
         long srcMask = this.getMask(srcPos);
@@ -323,12 +334,12 @@ public class BoardMap {
                 InternLogger.getLogger().debug("Pawn advance does not match with byte mask");
                 return MovementEvent.ILLEGAL.code();
             }
-            if(this.getPieceAt(srcPos + (this.color == WHITE ? FORWARD_OFFSET : -FORWARD_OFFSET)) != NONE) {
+            if(this.getPieceAt(srcPos + (this.turn == WHITE ? FORWARD_OFFSET : -FORWARD_OFFSET)) != NONE) {
                 InternLogger.getLogger().debug("Pawn advances into something");
                 return MovementEvent.ILLEGAL.code();
             }
             // We add one here to restore it back onto its actual represented location
-            enPassantSquare = srcPos + (this.color == WHITE ? FORWARD_OFFSET : -FORWARD_OFFSET) + 1;
+            enPassantSquare = srcPos + (this.turn == WHITE ? FORWARD_OFFSET : -FORWARD_OFFSET);
         }
         pawnAdvance &= ~getByteMask(file);
         return 0;
@@ -358,11 +369,11 @@ public class BoardMap {
     // in #handleMove()
 
     private int getRank(int src) {
-        return (src + 1) / 8;
+        return (src) / 8;
     }
 
     private int getFile(int src) {
-        return (src + 1) % 8;
+        return (src) % 8;
     }
 
     /**
