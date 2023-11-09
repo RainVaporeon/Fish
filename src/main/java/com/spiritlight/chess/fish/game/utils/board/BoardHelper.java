@@ -1,6 +1,9 @@
 package com.spiritlight.chess.fish.game.utils.board;
 
+import com.spiritlight.chess.fish.game.FEN;
+import com.spiritlight.chess.fish.game.Piece;
 import com.spiritlight.chess.fish.game.utils.BitboardMask;
+import com.spiritlight.fishutils.misc.arrays.primitive.CharacterArray;
 
 public class BoardHelper {
     /**
@@ -35,6 +38,30 @@ public class BoardHelper {
      */
     public static int getFENPosition(int position) {
         return ((position % 8) << 4) + (position / 8);
+    }
+
+    public static String viewBoard(String fen) {
+        int[] data = FEN.load(fen);
+        CharacterArray array = CharacterArray.create(64, size -> Piece.asCharacter(data[size]));
+        return String.format("""
+                + - + - + - + - + - + - + - + - +
+                8 %s | %s | %s | %s | %s | %s | %s | %s |
+                + - + - + - + - + - + - + - + - +
+                7 %s | %s | %s | %s | %s | %s | %s | %s |
+                + - + - + - + - + - + - + - + - +
+                6 %s | %s | %s | %s | %s | %s | %s | %s |
+                + - + - + - + - + - + - + - + - +
+                5 %s | %s | %s | %s | %s | %s | %s | %s |
+                + - + - + - + - + - + - + - + - +
+                4 %s | %s | %s | %s | %s | %s | %s | %s |
+                + - + - + - + - + - + - + - + - +
+                3 %s | %s | %s | %s | %s | %s | %s | %s |
+                + - + - + - + - + - + - + - + - +
+                2 %s | %s | %s | %s | %s | %s | %s | %s |
+                + - + - + - + - + - + - + - + - +
+                1 %s | %s | %s | %s | %s | %s | %s | %s |
+                + a + b + c + d + e + f + g + h +
+                """, (Object[]) array.toArray());
     }
 
     /**

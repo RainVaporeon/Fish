@@ -167,34 +167,13 @@ public class BoardMap {
     }
 
     public String boardView() {
-        return String.format("""
-                + - + - + - + - + - + - + - + - +
-                8 %s | %s | %s | %s | %s | %s | %s | %s |
-                + - + - + - + - + - + - + - + - +
-                7 %s | %s | %s | %s | %s | %s | %s | %s |
-                + - + - + - + - + - + - + - + - +
-                6 %s | %s | %s | %s | %s | %s | %s | %s |
-                + - + - + - + - + - + - + - + - +
-                5 %s | %s | %s | %s | %s | %s | %s | %s |
-                + - + - + - + - + - + - + - + - +
-                4 %s | %s | %s | %s | %s | %s | %s | %s |
-                + - + - + - + - + - + - + - + - +
-                3 %s | %s | %s | %s | %s | %s | %s | %s |
-                + - + - + - + - + - + - + - + - +
-                2 %s | %s | %s | %s | %s | %s | %s | %s |
-                + - + - + - + - + - + - + - + - +
-                1 %s | %s | %s | %s | %s | %s | %s | %s |
-                + a + b + b + c + d + f + g + h +
-                
-                """, (Object[]) CharacterArray.create(64, idx -> Piece.asCharacter(this.getPieceAt(63 - idx))).toArray())
-                .concat(String.format("|-Eval:%5.2f-----%5s to play-|", BoardEvaluator.evaluate(this, GameState.EARLY_GAME), (turn == WHITE ? "White" : "Black")));
+        return BoardHelper.viewBoard(this.toFENString());
     }
 
     public String flatBoardView() {
         String str = "0123456789".repeat(7).substring(0, 64).concat("\n");
         StringBuilder builder = new StringBuilder(64);
         for(int i = 0; i < 64; i++) {
-            InternLogger.getLogger().debug("Found piece " + Piece.asString(this.getPieceAt(i)) + " at " + Move.parseLocation(i) + " (aka " + i + ")");
             builder.append(Piece.asCharacter(this.getPieceAt(i)));
         }
         String other = "\n1bcdefgh2bcdefgh3bcdefgh4bcdefgh5bcdefgh6bcdefgh7bcdefgh8bcdefgh";
