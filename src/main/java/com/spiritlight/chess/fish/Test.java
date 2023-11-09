@@ -61,7 +61,19 @@ public class Test {
         timer.fence("boardmap.play");
         testPlay();
         timer.record("boardmap.play");
+        timer.fence("boardmap.fen");
+        testFENSetup();
+        timer.record("boardmap.fen");
         System.out.println(timer.getRecordString());
+        System.out.println("All test case passed! Congratulations!");
+    }
+
+    private static void testFENSetup() {
+        BoardMap map = BoardMap.fromFENString(FEN.INITIAL_POSITION);
+        assertEquals(map.toFENString(), FEN.INITIAL_POSITION, "FEN position not equal");
+        BoardMap map2 = BoardMap.fromFENString("2kr1b2/p4p1p/2pp4/1p2p3/8/1BPp4/PP1B1P2/RN1QK1q1 w - - 0 24");
+        assertEquals(map2.toFENString(), "2kr1b2/p4p1p/2pp4/1p2p3/8/1BPp4/PP1B1P2/RN1QK1q1 w - - 0 24", "FEN position not equal 2");
+
     }
 
     private static void testPlay() {
@@ -291,8 +303,16 @@ public class Test {
         System.out.println(" OK");
     }
 
+    private static void assertFalse(boolean bool, String message) {
+        assertFalse(() -> bool, message);
+    }
+
     private static void assertFalse(BooleanSupplier sup, String message) {
         if(sup.getAsBoolean()) throw new AssertionError(message);
+    }
+
+    private static void assertTrue(boolean bool, String message) {
+        assertTrue(() -> bool, message);
     }
 
     private static void assertTrue(BooleanSupplier sup, String message) {

@@ -14,7 +14,7 @@ public class Main {
             Consumer<String> out = s -> InternLogger.setEnabled(Boolean.parseBoolean(s));
             return Pair.of("intern.logger", out);
         });
-        registerLaunchOptions(SystemError.class, () -> Pair.of("system.error", s -> {}));
+        registerLaunchOptions(SystemError.class, () -> Pair.of("system.error", _ -> {}));
 
         try {
             LaunchArgs.init();

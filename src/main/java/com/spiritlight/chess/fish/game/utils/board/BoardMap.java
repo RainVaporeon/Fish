@@ -45,7 +45,7 @@ public class BoardMap {
     private int enPassantSquare = 0;
     private int halfMove = 0;
     private int fullMove = 1;
-    private int turn = WHITE;
+    private int turn = WHITE_TURN;
 
     private BoardMap(long pawn, long bishop, long knight, long rook, long queen, long king, int color) {
         this.pawn = pawn;
@@ -78,16 +78,16 @@ public class BoardMap {
         int destPiece = this.getPieceAt(dest);
         InternLogger.getLogger().debug("Move " + move + " extracts src=" + Piece.asString(srcPiece) + ", dest=" + Piece.asString(destPiece));
         // Turn checking
-        if(Piece.color(srcPiece) != turn) {
+        if(Piece.color(srcPiece) != (turn == WHITE_TURN ? WHITE : BLACK)) {
             InternLogger.getLogger().debug("Piece " + Piece.asString(srcPiece) + " is not of color " + Piece.asString(color));
-            return turn == WHITE ? MovementEvent.WHITE_TO_PLAY : MovementEvent.BLACK_TO_PLAY;
+            return turn == WHITE_TURN ? MovementEvent.WHITE_TO_PLAY : MovementEvent.BLACK_TO_PLAY;
         }
         // Destination checking; cannot capture pieces of the same color
         if(Piece.color(srcPiece) == Piece.color(destPiece)) return MovementEvent.CAPTURING_SAME;
         // Move checking, cannot move from nothing.
         if(srcPiece == NONE) return MovementEvent.ILLEGAL;
 
-        if(turn == WHITE) {
+        if(turn == WHITE_TURN) {
             return handleMove(srcPiece, src, dest, destPiece, enemyBoard.get(), move);
         } else {
             return this.enemyBoard.get().handleMove(srcPiece, src, dest, destPiece, this, move);
@@ -135,7 +135,6 @@ public class BoardMap {
         if(this.color == BLACK) return this.enemyBoard.get().toFENString(); // Convenience purposes only.
         int[] positions = new int[69]; // pos:color
         int arrIdx = 0;
-        StringBuilder fen = new StringBuilder();
         for(int rank = 0; rank < 8; rank++) {
             for(int file = 7; file >= 0; file--) {
                 int pos = (rank * 8) + file;
@@ -145,25 +144,65 @@ public class BoardMap {
                 if(piece == NONE) positions[arrIdx] = enemy;
                 if(enemy == NONE) positions[arrIdx] = piece;
                 if(enemy != NONE && piece != NONE) throw new SystemError(String.format("duplicate position: array=%s, pos=%d, type=%d,%d", Arrays.toString(positions), pos, piece, enemy));
-                InternLogger.getLogger().debug("Index " + pos + " (" + Move.parseLocation(pos) + ": " + Piece.asString(positions[arrIdx]) + ") has piece ID " + positions[arrIdx]);
-                fen.append(Piece.asCharacter(positions[arrIdx]));
+                // InternLogger.getLogger().debug("Index " + pos + " (" + Move.parseLocation(pos) + ": " + Piece.asString(positions[arrIdx]) + ") has piece ID " + positions[arrIdx]);
                 arrIdx++;
             }
         }
-        InternLogger.getLogger().debug("Comparing differences: ");
-        InternLogger.getLogger().debug("\n" + fen);
-        InternLogger.getLogger().debug("\n" + this.flatBoardView());
         int castleState = 0;
         if((this.castle & 0x0F) != 0) castleState |= WHITE_CASTLE_KING_SIDE;
         if((this.castle & 0xF0) != 0) castleState |= WHITE_CASTLE_QUEEN_SIDE;
         if((enemyBoard.get().castle & 0x0F) != 0) castleState |= BLACK_CASTLE_KING_SIDE;
         if((enemyBoard.get().castle & 0xF0) != 0) castleState |= BLACK_CASTLE_QUEEN_SIDE;
-        positions[TURN] = turn == WHITE ? WHITE_TURN : BLACK_TURN;
+        positions[TURN] = turn;
         positions[CASTLE] = castleState;
         positions[EN_PASSANT] = BoardHelper.getFENPosition(enPassantSquare);
         positions[HALF_MOVE] = (this.halfMove + enemyBoard.get().halfMove);
         positions[FULL_MOVE] = this.fullMove; // Synchronized
         return FEN.get(positions);
+    }
+
+    public static BoardMap fromFENString(String fen) {
+        int[] layout = FEN.load(fen);
+        int arrIdx = 0;
+        BoardMap boardMap = BoardMap.clearBoard(WHITE);
+        BoardMap enemyBoardMap = BoardMap.clearBoard(BLACK);
+        boardMap.enemyBoard.set(enemyBoardMap);
+        enemyBoardMap.enemyBoard.set(boardMap);
+        for(int rank = 0; rank < 8; rank++) {
+            for(int file = 7; file >= 0; file--) {
+                long mask = BoardMap.getFENMask((rank * 8) + file);
+                if((layout[arrIdx] & COLOR_MASK) == WHITE) {
+                    boardMap.retain(layout[arrIdx] & PIECE_MASK, mask);
+                } else {
+                    enemyBoardMap.retain(layout[arrIdx] & PIECE_MASK, mask);
+                }
+                arrIdx++;
+            }
+        }
+        int turn = layout[TURN];
+        boardMap.turn = turn;
+        enemyBoardMap.turn = turn;
+        int castle = layout[CASTLE];
+        int wCastle = castle & WHITE_CASTLE_MASK;
+        int bCastle = castle & BLACK_CASTLE_MASK;
+        if((wCastle & WHITE_CASTLE_KING_SIDE) != 0) boardMap.castle |= 0xF0;
+        if((wCastle & WHITE_CASTLE_QUEEN_SIDE) != 0) boardMap.castle |= 0x0F;
+        if((bCastle & BLACK_CASTLE_KING_SIDE) != 0) enemyBoardMap.castle |= 0xF0;
+        if((bCastle & BLACK_CASTLE_QUEEN_SIDE) != 0) enemyBoardMap.castle |= 0x0F;
+        int enPassant = layout[EN_PASSANT];
+        boardMap.enPassantSquare = BoardHelper.fromFENPosition(enPassant);
+        enemyBoardMap.enPassantSquare = BoardHelper.fromFENPosition(enPassant);
+        int half = layout[HALF_MOVE];
+        boardMap.halfMove = half;
+        enemyBoardMap.halfMove = half;
+        int full = layout[FULL_MOVE];
+        boardMap.fullMove = full;
+        enemyBoardMap.fullMove = full;
+        return boardMap;
+    }
+
+    private static BoardMap clearBoard(int color) {
+        return new BoardMap(0,0,0,0,0,0,color);
     }
 
     public String boardView() {
@@ -191,14 +230,14 @@ public class BoardMap {
      * @param location the bit position to be turned off
      * @return a mask with all bits but the location turned off.
      */
-    private long getMask(int location) {
+    private static long getMask(int location) {
         return 1L << location;
         // return 0x8000_0000_0000_0000L >>> location;
         // return ~(1L << location);
     }
 
     // Retrieves the mask used for FEN
-    private long getFENMask(int location) {
+    private static long getFENMask(int location) {
         return Long.MIN_VALUE >>> location;
     }
 
@@ -208,7 +247,7 @@ public class BoardMap {
      * shifts from the largest bit.
      * @see BoardMap#getMask(int)
      */
-    private int getByteMask(int position) {
+    private static int getByteMask(int position) {
         return 0b10000000 >>> position;
         // return ~(1 << position);
     }
@@ -225,8 +264,8 @@ public class BoardMap {
         InternLogger.getLogger().debug("Source: " + srcPos + ", Destination: " + destPos + " (Origin: " + (srcPos + 1) + ", " + (destPos + 1) + ")");
         InternLogger.getLogger().debug("State: " + BoardHelper.getPositionString(srcPos + 1) + ", " + BoardHelper.getPositionString(destPos + 1));
         InternLogger.getLogger().debug("Has: " + Piece.asString(srcPiece) + ", To: " + Piece.asString(destPiece));
-        long srcMask = this.getMask(srcPos);
-        long destMask = this.getMask(destPos);
+        long srcMask = getMask(srcPos);
+        long destMask = getMask(destPos);
 
         /* Verifying the result, 0 is OK
         * Check should include path checks and other processing,
@@ -274,7 +313,7 @@ public class BoardMap {
         clear(srcPiece & ~COLOR_MASK, srcMask);
         retain(srcPiece & ~COLOR_MASK, destMask);
 
-        if(turn == BLACK) {
+        if(turn == BLACK_TURN) {
             fullMove++;
             enemyBoard.get().fullMove++;
         }
@@ -323,34 +362,91 @@ public class BoardMap {
                 InternLogger.getLogger().debug("Pawn advance does not match with byte mask");
                 return MovementEvent.ILLEGAL.code();
             }
-            if(this.getPieceAt(srcPos + (this.turn == WHITE ? FORWARD_OFFSET : -FORWARD_OFFSET)) != NONE) {
+            if(this.getPieceAt(srcPos + (this.turn == WHITE_TURN ? FORWARD_OFFSET : -FORWARD_OFFSET)) != NONE) {
                 InternLogger.getLogger().debug("Pawn advances into something");
                 return MovementEvent.ILLEGAL.code();
             }
             // We add one here to restore it back onto its actual represented location
-            enPassantSquare = srcPos + (this.turn == WHITE ? FORWARD_OFFSET : -FORWARD_OFFSET);
+            enPassantSquare = srcPos + (this.turn == WHITE_TURN ? FORWARD_OFFSET : -FORWARD_OFFSET);
         }
         pawnAdvance &= ~getByteMask(file);
         return 0;
     }
 
     private int verifyKnight(int srcPos, int destPos) {
-        return 0;
+        // Honestly somewhat easy to check on this one
+        // as knights skip over pieces
+        int diff = Math.abs(srcPos - destPos);
+        boolean valid = Math.abs(BoardHelper.getRank(diff) - BoardHelper.getFile(diff)) == 1;
+        if(valid) return 0;
+        return MovementEvent.ILLEGAL.code();
     }
 
     private int verifyBishop(int srcPos, int destPos) {
+        int srcFile = BoardHelper.getFile(srcPos);
+        int srcRank = BoardHelper.getRank(srcPos);
+        int destFile = BoardHelper.getFile(destPos);
+        int destRank = BoardHelper.getRank(destPos);
+        // Bishop tried to move funny
+        if(srcFile == destFile || srcRank == destRank) return MovementEvent.ILLEGAL.code();
+        if(Math.abs(srcFile - destFile) != Math.abs(srcRank - destRank)) return MovementEvent.ILLEGAL.code();
+        int range = Math.abs(srcFile - destFile);
+        // Now we know it's just sliding on a diagonal, though it's a bit tricky to manage this
+        if(srcFile < destFile && srcRank < destRank) { // top right
+            for(int i = 1; i < range; i++) {
+                int pos = (srcFile + i) + ((srcRank + i) * 8);
+                if(this.getPieceAt(pos) != NONE) return MovementEvent.ILLEGAL.code();
+            }
+            return 0;
+        }
+        if(srcFile < destFile) { // top left
+            for(int i = 1; i < range; i++) {
+                int pos = (srcFile + i) + ((srcRank - i) * 8);
+                if(this.getPieceAt(pos) != NONE) return MovementEvent.ILLEGAL.code();
+            }
+            return 0;
+        }
+        if(srcRank > destRank) { // bottom left
+            for(int i = 1; i < range; i++) {
+                int pos = (srcFile - i) + ((srcRank - i) * 8);
+                if(this.getPieceAt(pos) != NONE) return MovementEvent.ILLEGAL.code();
+            }
+            return 0;
+        }
+        for(int i = 1; i < range; i++) {
+            int pos = (srcFile - i) + ((srcRank + i) * 8);
+            if(this.getPieceAt(pos) != NONE) return MovementEvent.ILLEGAL.code();
+        }
         return 0;
     }
 
     private int verifyRook(int srcPos, int destPos) {
+        int srcFile = BoardHelper.getFile(srcPos);
+        int srcRank = BoardHelper.getRank(srcPos);
+        int destFile = BoardHelper.getFile(destPos);
+        int destRank = BoardHelper.getRank(destPos);
+        // Rook tried to move funny
+        if(srcFile != destFile && srcRank != destRank) return MovementEvent.ILLEGAL.code();
+        if(srcFile == destFile) {
+            // Check that sliding range of rank
+            for(int i = Math.min(srcRank, destRank) + 1; i < Math.max(srcRank, destRank) - 1; i++) {
+                if(this.getPieceAt(i * 8 + srcFile) != NONE) return MovementEvent.ILLEGAL.code();
+            }
+        } else {
+            // Check that sliding range of file
+            for(int i = Math.min(srcFile, destFile) + 1; i < Math.max(srcFile, destFile) - 1; i++) {
+                if(this.getPieceAt(i + srcRank * 8) != NONE) return MovementEvent.ILLEGAL.code();
+            }
+        }
         return 0;
     }
 
     private int verifyQueen(int srcPos, int destPos) {
-        return 0;
+        return Math.min(verifyBishop(srcPos, destPos), verifyRook(srcPos, destPos));
     }
 
     private int verifyKing(int srcPos, int destPos) {
+        // 1 square, check if it gets put in check after some time
         return 0;
     }
 
@@ -358,11 +454,11 @@ public class BoardMap {
     // in #handleMove()
 
     private int getRank(int src) {
-        return (src) / 8;
+        return BoardHelper.getRank(src);
     }
 
     private int getFile(int src) {
-        return (src) % 8;
+        return BoardHelper.getFile(src);
     }
 
     /**
@@ -372,6 +468,7 @@ public class BoardMap {
      */
     private void clear(int srcPiece, long mask) {
         switch (srcPiece) {
+            case NONE -> {} // no-op clearing nothing
             case PAWN -> pawn &= ~mask;
             case BISHOP -> bishop &= ~mask;
             case KNIGHT -> knight &= ~mask;
@@ -389,6 +486,7 @@ public class BoardMap {
      */
     private void retain(int srcPiece, long mask) {
         switch (srcPiece) {
+            case NONE -> {} // no-op
             case PAWN -> pawn |= mask;
             case BISHOP -> bishop |= mask;
             case KNIGHT -> knight |= mask;

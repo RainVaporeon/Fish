@@ -40,6 +40,16 @@ public class BoardHelper {
         return ((position % 8) << 4) + (position / 8);
     }
 
+    /**
+     * Converts the position specified in {@link FEN} to the kind stored in this
+     * board map's position system
+     * @param position the position
+     * @return the board map representation
+     */
+    public static int fromFENPosition(int position) {
+        return (position >> 4) + 8 * (position & 0x0F);
+    }
+
     public static String viewBoard(String fen) {
         int[] data = FEN.load(fen);
         CharacterArray array = CharacterArray.create(64, size -> Piece.asCharacter(data[size]));
