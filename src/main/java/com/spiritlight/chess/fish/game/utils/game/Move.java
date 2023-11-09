@@ -62,6 +62,10 @@ public record Move(int from, int to) {
         return of(arr[0].trim(), arr[1].trim());
     }
 
+    public static String parseLocation(int src) {
+        return "" + (char) ((src % 8) + 'a') + (char) ((src / 8) + '1');
+    }
+
     @Override
     public String toString() {
         int fromFile = from % 8;

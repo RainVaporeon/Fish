@@ -28,8 +28,8 @@ public class BoardMap {
     private static final long BISHOP_MASK = 0b00100100;
     private static final long KNIGHT_MASK = 0b01000010;
     private static final long ROOK_MASK   = 0b10000001;
-    private static final long KING_MASK   = 0b00001000;
-    private static final long QUEEN_MASK  = 0b00010000;
+    private static final long KING_MASK   = 0b00010000;
+    private static final long QUEEN_MASK  = 0b00001000;
 
     private long pawn;
     private long bishop;
@@ -135,15 +135,24 @@ public class BoardMap {
         if(this.color == BLACK) return this.enemyBoard.get().toFENString(); // Convenience purposes only.
         int[] positions = new int[69]; // pos:color
         int arrIdx = 0;
-        for(int i = 0; i < 64; i++) {
-            int piece = this.getSelfPieceAt(i, true);
-            int enemy = enemyBoard.get().getSelfPieceAt(i, true);
-            if(piece == NONE && enemy == NONE) positions[arrIdx] = NONE;
-            if(piece == NONE) positions[arrIdx] = enemy;
-            if(enemy == NONE) positions[arrIdx] = piece;
-            if(enemy != NONE && piece != NONE) throw new SystemError(String.format("duplicate position: array=%s, pos=%d, type=%d,%d", Arrays.toString(positions), i, piece, enemy));
-            arrIdx++;
+        StringBuilder fen = new StringBuilder();
+        for(int rank = 0; rank < 8; rank++) {
+            for(int file = 7; file >= 0; file--) {
+                int pos = (rank * 8) + file;
+                int piece = this.getSelfPieceAt(pos, true);
+                int enemy = enemyBoard.get().getSelfPieceAt(pos, true);
+                if(piece == NONE && enemy == NONE) positions[arrIdx] = NONE;
+                if(piece == NONE) positions[arrIdx] = enemy;
+                if(enemy == NONE) positions[arrIdx] = piece;
+                if(enemy != NONE && piece != NONE) throw new SystemError(String.format("duplicate position: array=%s, pos=%d, type=%d,%d", Arrays.toString(positions), pos, piece, enemy));
+                InternLogger.getLogger().debug("Index " + pos + " (" + Move.parseLocation(pos) + ": " + Piece.asString(positions[arrIdx]) + ") has piece ID " + positions[arrIdx]);
+                fen.append(Piece.asCharacter(positions[arrIdx]));
+                arrIdx++;
+            }
         }
+        InternLogger.getLogger().debug("Comparing differences: ");
+        InternLogger.getLogger().debug("\n" + fen);
+        InternLogger.getLogger().debug("\n" + this.flatBoardView());
         int castleState = 0;
         if((this.castle & 0x0F) != 0) castleState |= WHITE_CASTLE_KING_SIDE;
         if((this.castle & 0xF0) != 0) castleState |= WHITE_CASTLE_QUEEN_SIDE;
@@ -185,6 +194,7 @@ public class BoardMap {
         String str = "0123456789".repeat(7).substring(0, 64).concat("\n");
         StringBuilder builder = new StringBuilder(64);
         for(int i = 0; i < 64; i++) {
+            InternLogger.getLogger().debug("Found piece " + Piece.asString(this.getPieceAt(i)) + " at " + Move.parseLocation(i) + " (aka " + i + ")");
             builder.append(Piece.asCharacter(this.getPieceAt(i)));
         }
         String other = "\n1bcdefgh2bcdefgh3bcdefgh4bcdefgh5bcdefgh6bcdefgh7bcdefgh8bcdefgh";

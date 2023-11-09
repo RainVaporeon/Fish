@@ -135,7 +135,7 @@ public class Test {
 
     private static void testBoard() {
         BoardMap board = BoardMap.initialize();
-        assertEquals(FEN.INITIAL_POSITION, board.toFENString(), "Board conversion failed");
+        assertEquals(board.toFENString(), FEN.INITIAL_POSITION, "Board conversion failed");
     }
 
     private static void testMove() {
