@@ -1,5 +1,7 @@
 package com.spiritlight.chess.fish.game;
 
+import com.spiritlight.chess.fish.internal.InternLogger;
+
 import static com.spiritlight.chess.fish.game.Piece.*;
 import static com.spiritlight.chess.fish.game.utils.GameConstants.*;
 
@@ -151,6 +153,7 @@ public class FEN {
     }
 
     public static int parseCastle(String in) {
+        InternLogger.getLogger().debug("[FEN] Found castle input " + in);
         int value = 0;
         if(in.equals("-")) return value;
         if(in.contains("Q")) value |= WHITE_CASTLE_QUEEN_SIDE;

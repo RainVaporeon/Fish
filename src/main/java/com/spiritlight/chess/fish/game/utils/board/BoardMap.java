@@ -168,6 +168,8 @@ public class BoardMap {
         BoardMap enemyBoardMap = BoardMap.clearBoard(BLACK);
         boardMap.enemyBoard.set(enemyBoardMap);
         enemyBoardMap.enemyBoard.set(boardMap);
+        boardMap.castle = 0;
+        enemyBoardMap.castle = 0;
         for(int rank = 0; rank < 8; rank++) {
             for(int file = 7; file >= 0; file--) {
                 long mask = BoardMap.getFENMask((rank * 8) + file);
