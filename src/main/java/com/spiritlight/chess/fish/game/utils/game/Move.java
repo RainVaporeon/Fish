@@ -1,5 +1,7 @@
 package com.spiritlight.chess.fish.game.utils.game;
 
+import com.spiritlight.chess.fish.game.utils.board.BoardHelper;
+
 /**
  * Denoting a move
  * @param from the square from
@@ -64,6 +66,12 @@ public record Move(int from, int to) {
 
     public static String parseLocation(int src) {
         return "" + (char) ((src % 8) + 'a') + (char) ((src / 8) + '1');
+    }
+
+    public static int parseLocation(String src) {
+        int file = src.charAt(0) - 'a';
+        int rank = src.charAt(1) - '1';
+        return file + rank * 8;
     }
 
     @Override

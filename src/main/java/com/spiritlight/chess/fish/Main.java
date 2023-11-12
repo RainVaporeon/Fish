@@ -5,10 +5,15 @@ import com.spiritlight.chess.fish.internal.exceptions.SystemError;
 import com.spiritlight.chess.fish.internal.utils.boot.LaunchArgs;
 import com.spiritlight.chess.fish.internal.utils.boot.LaunchOption;
 import com.spiritlight.fishutils.collections.Pair;
+import com.spiritlight.fishutils.logging.ILogger;
+import com.spiritlight.fishutils.logging.Logger;
+import com.spiritlight.fishutils.logging.Loggers;
 
 import java.util.function.Consumer;
 
 public class Main {
+    private static final Logger log = Loggers.getLogger("Fish/Launch");
+
     public static void main(String[] args) {
         registerLaunchOptions(InternLogger.class, () -> {
             Consumer<String> out = s -> InternLogger.setEnabled(Boolean.parseBoolean(s));
@@ -31,6 +36,7 @@ public class Main {
     // The target is unused here, but indicates the source class this option
     // intends to target to.
     private static void registerLaunchOptions(Class<?> target, LaunchOption option) {
+        log.info("Defined LaunchOption " + System.identityHashCode(option) + " as a launch property of " + target);
         LaunchArgs.register(option);
     }
 }

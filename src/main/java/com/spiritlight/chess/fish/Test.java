@@ -34,24 +34,21 @@ public class Test {
         timer.start();
         testFenString(timer); // Contains I/O to receive off-heap data, fence internally instead.
         timer.record("fen");
-        timer.fence("gen");
-        generateBoard(FEN.getInitialPosition());
-        timer.record("gen");
-        timer.fence("parse");
+        timer.fence("fen.parse");
         testParsing();
-        timer.record("parse");
-        timer.fence("mask");
+        timer.record("fen.parse");
+        timer.fence("bit.mask");
         testMasking();
-        timer.record("mask");
-        timer.fence("move");
+        timer.record("bit.mask");
+        timer.fence("move.create");
         testMove();
-        timer.record("move");
-        timer.fence("board");
+        timer.record("move.create");
+        timer.fence("boardmap.initialize");
         testBoard();
-        timer.record("move");
-        timer.fence("play");
+        timer.record("boardmap.initialize");
+        timer.fence("boardmap.play");
         testBoardMove();
-        timer.record("play");
+        timer.record("boardmap.play");
         timer.fence("bitboard.load");
         testBitboardLoad();
         timer.record("bitboard.load");
@@ -64,8 +61,32 @@ public class Test {
         timer.fence("boardmap.fen");
         testFENSetup();
         timer.record("boardmap.fen");
+        timer.fence("boardmap.misc.moves");
+        testMisc();
+        timer.record("boardmap.misc.moves");
         System.out.println(timer.getRecordString());
         System.out.println("All test case passed! Congratulations!");
+    }
+
+    private static void testMisc() {
+        BoardMap knight = BoardMap.fromFENString("k7/8/2p1p3/1p3p2/3N4/1p3p2/2p1p3/7K w - - 0 1");
+        int knightSource = Move.parseLocation("d4");
+        String[] locations = {"c2", "e2", "b3", "f3", "b5", "f5", "c6", "e6"};
+        for(String dest : locations) {
+            assertTrue(knight.canMove(knightSource, Move.parseLocation(dest)), "Invalid moveset d4 " + dest);
+        }
+        System.out.println("Knight move passed");
+        BoardMap rook = BoardMap.fromFENString("4r3/2k5/4R3/8/rr2R1Rr/8/2K5/4r3 w - - 0 1");
+        int rookSource = Move.parseLocation("e4");
+        String[] okLocations = {"e1", "e2", "e3", "b4", "c4", "d4", "f4", "e5"};
+        String[] noOkLocations = {"a4", "g4", "e6", "h4", "e7", "e8"};
+        for(String dest : okLocations) {
+            assertTrue(rook.canMove(rookSource, Move.parseLocation(dest)), "Invalid moveset e4 " + dest);
+        }
+        for(String dest : noOkLocations) {
+            assertFalse(rook.canMove(rookSource, Move.parseLocation(dest)), "Valid invalid moveset e4 " + dest);
+        }
+        System.out.println("Rook move passed");
     }
 
     private static void testFENSetup() {
@@ -231,29 +252,6 @@ public class Test {
         }
 
         System.out.println("FEN parsing test finished, " + success + " success, " + fail + " fail.");
-    }
-
-    //║♖│♘│♗│♕│♔│♗│♘║1
-    //║♜│♞│♝│♛│♚│♝│♞║8
-
-    /**
-     * Generates the board layout
-     * @param board the board
-     */
-    private static void generateBoard(int[] board) {
-        for (int i = 0; i < 64;) {
-            final String s = getPiece(board, i);
-            System.out.print(s);
-            if(++i % 8 == 0) System.out.println();
-        }
-        System.out.printf("%s to play | Castle status: %s | En passant: %s | Half-move: %s | Full-move: %s\n",
-                board[64] == WHITE_TURN ? "White" : "Black",
-                FEN.parseCastle(board[65]),
-                board[66] == 0 ? "-" : String.valueOf((char) ((board[66] >> 4) + 'a')) + ((char) ((board[66] & 0x0F) + '1')),
-                board[67],
-                board[68]);
-
-        System.out.println("Board generation successful.");
     }
 
     /**
