@@ -149,4 +149,19 @@ public class Magic {
         return BISHOP;
     }
 
+    /**
+     * Visualizes the given long pattern in an 8x8 board
+     * @param pattern the pattern
+     * @return the bit board representation of the long
+     */
+    public static String visualize(long pattern) {
+        StringBuilder builder = new StringBuilder();
+        for(int i = 0; i < 8; i++) {
+            for (int j = 0; j < 8; j++) {
+                builder.append((pattern & 1L << i * 8 + j) == 0 ? 0 : 1);
+            }
+            builder.append("\n");
+        }
+        return builder.toString();
+    }
 }

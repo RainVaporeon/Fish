@@ -5,7 +5,9 @@ import com.spiritlight.chess.fish.internal.InternLogger;
 import com.spiritlight.chess.fish.internal.annotation.Mask;
 import com.spiritlight.chess.fish.internal.annotation.MaskType;
 import com.spiritlight.chess.fish.internal.exceptions.SystemError;
+import com.spiritlight.fishutils.collections.IntList;
 
+import static com.spiritlight.chess.fish.game.utils.GameConstants.SQRT_5;
 import static com.spiritlight.chess.fish.game.utils.game.Move.FORWARD_OFFSET;
 
 public class Piece {
@@ -110,6 +112,27 @@ public class Piece {
             }
         }
         return ret;
+    }
+
+    /**
+     * Generates an array of squares that a knight may attack
+     * @param src the source location
+     * @return locations a knight can reach
+     */
+    public static int[] getKnightAttackSquares(int src) {
+        IntList list = new IntList(8);
+        int srcFile = BoardHelper.getFile(src);
+        int srcRank = BoardHelper.getRank(src);
+        for(int i = 0; i < 64; i++) {
+            int rDiff = Math.abs(srcRank - BoardHelper.getRank(i));
+            int fDiff = Math.abs(srcFile - BoardHelper.getFile(i));
+            if(Math.abs(rDiff - fDiff) == 1) {
+                if(rDiff + fDiff == 3) {
+                    list.add(i);
+                }
+            }
+        }
+        return list.toIntArray();
     }
 
     /**

@@ -4,7 +4,9 @@ import com.google.gson.JsonArray;
 import com.spiritlight.chess.fish.game.FEN;
 import com.spiritlight.chess.fish.game.Piece;
 import com.spiritlight.chess.fish.game.utils.GameState;
+import com.spiritlight.chess.fish.game.utils.board.AttackTable;
 import com.spiritlight.chess.fish.game.utils.board.BoardMap;
+import com.spiritlight.chess.fish.game.utils.board.Magic;
 import com.spiritlight.chess.fish.game.utils.game.BoardEvaluator;
 import com.spiritlight.chess.fish.game.utils.game.Move;
 import com.spiritlight.chess.fish.game.utils.game.MovementEvent;
@@ -64,8 +66,25 @@ public class Test {
         timer.fence("boardmap.misc.moves");
         testMisc();
         timer.record("boardmap.misc.moves");
+        timer.fence("table.attack.gen");
+        testAttackMoveGen();
+        timer.record("table.attack.gen");
+        timer.fence("table.attack.getall");
+        testAttackMoveGetAll();
+        timer.record("table.attack.getall");
         System.out.println(timer.getRecordString());
         System.out.println("All test case passed! Congratulations!");
+    }
+
+    private static void testAttackMoveGetAll() {
+        AttackTable.getBishop().iterator().forEachRemaining(table -> System.out.println(Magic.visualize(table)));
+        AttackTable.getRook().iterator().forEachRemaining(table -> System.out.println(Magic.visualize(table)));
+        AttackTable.getQueen().iterator().forEachRemaining(table -> System.out.println(Magic.visualize(table)));
+        AttackTable.getKnight().iterator().forEachRemaining(table -> System.out.println(Magic.visualize(table)));
+    }
+
+    private static void testAttackMoveGen() {
+        AttackTable.init();
     }
 
     private static void testMisc() {

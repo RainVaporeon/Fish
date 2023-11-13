@@ -419,7 +419,9 @@ public class BoardMap {
         // as knights skip over pieces
         int rDiff = Math.abs(BoardHelper.getRank(srcPos) - BoardHelper.getRank(destPos));
         int fDiff = Math.abs(BoardHelper.getFile(srcPos) - BoardHelper.getFile(destPos));
-        if(Math.abs(rDiff - fDiff) == 1) return 0;
+        if(Math.abs(rDiff - fDiff) == 1) {
+            if(rDiff + fDiff == 3) return 0;
+        }
         return MovementEvent.ILLEGAL.code();
     }
 

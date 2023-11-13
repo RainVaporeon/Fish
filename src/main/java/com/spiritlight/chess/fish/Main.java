@@ -1,5 +1,6 @@
 package com.spiritlight.chess.fish;
 
+import com.spiritlight.chess.fish.game.utils.board.Magic;
 import com.spiritlight.chess.fish.internal.InternLogger;
 import com.spiritlight.chess.fish.internal.exceptions.SystemError;
 import com.spiritlight.chess.fish.internal.utils.boot.LaunchArgs;
@@ -30,6 +31,11 @@ public class Main {
             InternLogger.getLogger().error("The system will now halt.");
             System.exit(1);
             return;
+        }
+
+        for(int i = 0; i < 64; i++) {
+            System.out.println("Rook magic pattern: #" + i);
+            System.out.println(Magic.visualize(Magic.rookMagic().get(i)));
         }
     }
 
