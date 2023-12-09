@@ -72,19 +72,16 @@ public abstract class GameBitboard {
 
     /**
      * Retrieves the early game bitboard state.
-     * @return
      */
     protected abstract IntArray early();
 
     /**
      * Retrieves the middle game bitboard state.
-     * @return
      */
     protected abstract IntArray middle();
 
     /**
      * Retrieves the end game bitboard state.
-     * @return
      */
     protected abstract IntArray end();
 
@@ -93,7 +90,7 @@ public abstract class GameBitboard {
             case EARLY_GAME -> early();
             case MIDDLE_GAME -> middle();
             case END_GAME -> end();
-            default -> throw new IllegalArgumentException("unexpected state: " + state);
+            default -> throw new IllegalArgumentException(STR."unexpected state: \{state}");
         };
     }
 
@@ -110,8 +107,8 @@ public abstract class GameBitboard {
     }
 
     public static void register(int piece, GameBitboard board, boolean override) {
-        if(boardMap.containsKey(piece) && !override) throw new IllegalStateException("board with id " + piece + " already present. override with override parameter true");
-        if(boardMap.containsValue(board)) InternLogger.getLogger().warn("Board with ID " + piece + " was registered with a duplicated board.");
+        if(boardMap.containsKey(piece) && !override) throw new IllegalStateException(STR."board with id \{piece} already present. override with override parameter true");
+        if(boardMap.containsValue(board)) InternLogger.getLogger().warn(STR."Board with ID \{piece} was registered with a duplicated board.");
         verifyBoard(board);
         boardMap.put(piece, board);
     }

@@ -18,6 +18,6 @@ public interface LaunchOption {
     Pair<String, Consumer<String>> getActionPair();
 
     static String getString(LaunchOption option) {
-        return option.getActionPair().getKey() + ":" + option.getActionPair();
+        return STR."\{option.getActionPair().getKey()}:\{option.getActionPair()}";
     }
 }

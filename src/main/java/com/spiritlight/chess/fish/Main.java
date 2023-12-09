@@ -6,7 +6,6 @@ import com.spiritlight.chess.fish.internal.exceptions.SystemError;
 import com.spiritlight.chess.fish.internal.utils.boot.LaunchArgs;
 import com.spiritlight.chess.fish.internal.utils.boot.LaunchOption;
 import com.spiritlight.fishutils.collections.Pair;
-import com.spiritlight.fishutils.logging.ILogger;
 import com.spiritlight.fishutils.logging.Logger;
 import com.spiritlight.fishutils.logging.Loggers;
 
@@ -34,7 +33,7 @@ public class Main {
         }
 
         for(int i = 0; i < 64; i++) {
-            System.out.println("Rook magic pattern: #" + i);
+            System.out.println(STR."Rook magic pattern: #\{i}");
             System.out.println(Magic.visualize(Magic.rookMagic().get(i)));
         }
     }
@@ -42,7 +41,7 @@ public class Main {
     // The target is unused here, but indicates the source class this option
     // intends to target to.
     private static void registerLaunchOptions(Class<?> target, LaunchOption option) {
-        log.info("Defined LaunchOption " + System.identityHashCode(option) + " as a launch property of " + target);
+        log.info(STR."Defined LaunchOption \{System.identityHashCode(option)} as a launch property of \{target}");
         LaunchArgs.register(option);
     }
 }

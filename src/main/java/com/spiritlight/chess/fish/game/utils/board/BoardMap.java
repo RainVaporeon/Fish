@@ -4,7 +4,6 @@ import com.spiritlight.chess.fish.game.FEN;
 import com.spiritlight.chess.fish.game.Piece;
 import com.spiritlight.chess.fish.game.utils.EndType;
 import com.spiritlight.chess.fish.game.utils.GameState;
-import com.spiritlight.chess.fish.game.utils.game.BoardEvaluator;
 import com.spiritlight.chess.fish.game.utils.game.Move;
 import com.spiritlight.chess.fish.game.utils.game.MovementEvent;
 import com.spiritlight.chess.fish.internal.InternLogger;
@@ -12,8 +11,6 @@ import com.spiritlight.chess.fish.internal.exceptions.SystemError;
 import com.spiritlight.chess.fish.internal.utils.StableField;
 import com.spiritlight.fishutils.collections.Pair;
 import com.spiritlight.fishutils.misc.annotations.Modifies;
-import com.spiritlight.fishutils.misc.arrays.primitive.CharacterArray;
-import com.spiritlight.fishutils.misc.arrays.primitive.IntArray;
 
 import java.util.Arrays;
 import java.util.Iterator;
@@ -47,6 +44,8 @@ public class BoardMap {
     private int fullMove = 1;
     private int turn = WHITE_TURN;
 
+    private CheckMethod checkMethod;
+
     private BoardMap(long pawn, long bishop, long knight, long rook, long queen, long king, int color) {
         this.pawn = pawn;
         this.bishop = bishop;
@@ -55,6 +54,7 @@ public class BoardMap {
         this.queen = queen;
         this.king = king;
         this.color = color;
+        this.checkMethod = CheckMethod.MANUAL;
         this.enemyBoard = new StableField<>(null);
     }
 
@@ -96,7 +96,7 @@ public class BoardMap {
         int destPiece = this.getPieceAt(dest);
         // Turn checking
         if(Piece.color(srcPiece) != (turn == WHITE_TURN ? WHITE : BLACK)) {
-            InternLogger.getLogger().debug("Piece " + Piece.asString(srcPiece) + " is not of color " + Piece.asString(color));
+            InternLogger.getLogger().debug(STR."Piece \{Piece.asString(srcPiece)} is not of color \{Piece.asString(color)}");
             return turn == WHITE_TURN ? MovementEvent.WHITE_TO_PLAY : MovementEvent.BLACK_TO_PLAY;
         }
         // Destination checking; cannot capture pieces of the same color
@@ -147,7 +147,7 @@ public class BoardMap {
      */
     public String toFENString() {
         if(this.color == BLACK && this.enemyBoard.get().color == BLACK) {
-            throw new SystemError("unexpected color: this and enemy board color is black. dump: " + this + ", enemy=" + this.enemyBoard.get());
+            throw new SystemError(STR."unexpected color: this and enemy board color is black. dump: \{this}, enemy=\{this.enemyBoard.get()}");
         }
         if(this.color == BLACK) return this.enemyBoard.get().toFENString(); // Convenience purposes only.
         int[] positions = new int[69]; // pos:color
@@ -223,6 +223,8 @@ public class BoardMap {
         int full = layout[FULL_MOVE];
         boardMap.fullMove = full;
         enemyBoardMap.fullMove = full;
+        if(boardMap.inCheck() && turn == BLACK_TURN) throw new IllegalArgumentException("white in check, but it's black's turn");
+        if(enemyBoardMap.inCheck() && turn == WHITE_TURN) throw new IllegalArgumentException("black in check, but it's white's turn");
         return boardMap;
     }
 
@@ -244,37 +246,13 @@ public class BoardMap {
         return str + builder + other;
     }
 
+    public void setCheckMethod(CheckMethod checkMethod) {
+        this.checkMethod = checkMethod;
+        this.getEnemyBoard().checkMethod = checkMethod;
+    }
+
     public BoardItr itr() {
         return new BoardItr();
-    }
-
-    /**
-     * Retrieves a mask with all bits but the specified location turned off.
-     * This shifts from the largest bit, whereas {@link BoardMap#getByteMask(int)}
-     * shifts from the smallest bit.
-     * @param location the bit position to be turned off
-     * @return a mask with all bits but the location turned off.
-     */
-    private static long getMask(int location) {
-        return 1L << location;
-        // return 0x8000_0000_0000_0000L >>> location;
-        // return ~(1L << location);
-    }
-
-    // Retrieves the mask used for FEN
-    private static long getFENMask(int location) {
-        return Long.MIN_VALUE >>> location;
-    }
-
-    /**
-     * Retrieves a bitmask with the specified position turned on.
-     * This shifts from the smallest bit, whereas {@link BoardMap#getMask(int)}
-     * shifts from the largest bit.
-     * @see BoardMap#getMask(int)
-     */
-    private static int getByteMask(int position) {
-        return 0b10000000 >>> position;
-        // return ~(1 << position);
     }
 
     public boolean canMove(int srcPos, int destPos) {
@@ -288,7 +266,7 @@ public class BoardMap {
             case ROOK -> verifyRook(srcPos, destPos);
             case QUEEN -> verifyQueen(srcPos, destPos);
             case KING -> verifyKing(srcPos, destPos);
-            default -> throw new IllegalStateException("Unexpected value: " + (srcPiece & ~COLOR_MASK));
+            default -> throw new IllegalStateException(STR."Unexpected value: \{srcPiece & ~COLOR_MASK}");
         };
         return handlerCode == 0;
     }
@@ -302,9 +280,9 @@ public class BoardMap {
      * @param enemyMap the enemy BoardMap to update if {@code capturedPiece != null}
      */
     private MovementEvent handleMove(int srcPiece, int srcPos, int destPos, int destPiece, BoardMap enemyMap, Move move) {
-        InternLogger.getLogger().debug("Source: " + srcPos + ", Destination: " + destPos + " (Origin: " + (srcPos + 1) + ", " + (destPos + 1) + ")");
-        InternLogger.getLogger().debug("State: " + BoardHelper.getPositionString(srcPos + 1) + ", " + BoardHelper.getPositionString(destPos + 1));
-        InternLogger.getLogger().debug("Has: " + Piece.asString(srcPiece) + ", To: " + Piece.asString(destPiece));
+        InternLogger.getLogger().debug(STR."Source: \{srcPos}, Destination: \{destPos} (Origin: \{srcPos + 1}, \{destPos + 1})");
+        InternLogger.getLogger().debug(STR."State: \{BoardHelper.getPositionString(srcPos + 1)}, \{BoardHelper.getPositionString(destPos + 1)}");
+        InternLogger.getLogger().debug(STR."Has: \{Piece.asString(srcPiece)}, To: \{Piece.asString(destPiece)}");
         long srcMask = getMask(srcPos);
         long destMask = getMask(destPos);
 
@@ -320,7 +298,7 @@ public class BoardMap {
             case ROOK -> verifyRook(srcPos, destPos);
             case QUEEN -> verifyQueen(srcPos, destPos);
             case KING -> verifyKing(srcPos, destPos);
-            default -> throw new IllegalStateException("Unexpected value: " + (srcPiece & ~COLOR_MASK));
+            default -> throw new IllegalStateException(STR."Unexpected value: \{srcPiece & ~COLOR_MASK}");
         };
 
         MovementEvent error = translate(handlerCode);
@@ -342,7 +320,7 @@ public class BoardMap {
 
         /* Castle rights */
         if(Piece.is(srcPiece, ROOK)) {
-            if(this.getFile(srcPos) == 0) {
+            if(BoardHelper.getFile(srcPos) == 0) {
                 castle &= ~0xF0;
             } else {
                 castle &= ~0x0F;
@@ -370,12 +348,6 @@ public class BoardMap {
         return new MovementEvent(srcPiece, destPiece, move);
     }
 
-    // Translates the given code to the event
-    private static MovementEvent translate(int code) {
-        if((code & ~PIECE_MASK) == 0) return null;
-        return MovementEvent.getTranslationCode(code);
-    }
-
     // Section to verify the validity of a movement.
     // If it mutates board structure in the process,
     // methods are annotated with the @Modifies annotation
@@ -387,10 +359,10 @@ public class BoardMap {
 
     @Modifies({"enPassantSquare", "pawnAdvance"})
     private int verifyPawn(int srcPos, int destPos, int destPiece) {
-        int file = this.getFile(srcPos);
-        int destFile = this.getFile(destPos);
+        int file = BoardHelper.getFile(srcPos);
+        int destFile = BoardHelper.getFile(destPos);
         if (Math.abs(file - destFile) > 1) {
-            InternLogger.getLogger().debug("Distance too far horizontally: From " + file + " to " + destFile);
+            InternLogger.getLogger().debug(STR."Distance too far horizontally: From \{file} to \{destFile}");
             return MovementEvent.ILLEGAL.code();
         }
         if ((Math.abs(file - destFile) == 1 && destPiece == NONE) || (file - destFile == 0 && destPiece != NONE)) {
@@ -398,7 +370,7 @@ public class BoardMap {
             return MovementEvent.ILLEGAL.code();
         }
 
-        if(Math.abs(this.getRank(srcPos) - this.getRank(destPos)) == 2) {
+        if(Math.abs(BoardHelper.getRank(srcPos) - BoardHelper.getRank(destPos)) == 2) {
             if((pawnAdvance & getByteMask(file)) == 0) {
                 InternLogger.getLogger().debug("Pawn advance does not match with byte mask");
                 return MovementEvent.ILLEGAL.code();
@@ -415,6 +387,9 @@ public class BoardMap {
     }
 
     private int verifyKnight(int srcPos, int destPos) {
+        if(this.checkMethod.useBits()) {
+            return (BoardMap.getMask(destPos) & (AttackTable.getMaskAt(KNIGHT, srcPos) & ~this.mergePieceMask())) == 0 ? 0 : MovementEvent.ILLEGAL.code();
+        }
         // Honestly somewhat easy to check on this one
         // as knights skip over pieces
         int rDiff = Math.abs(BoardHelper.getRank(srcPos) - BoardHelper.getRank(destPos));
@@ -488,20 +463,45 @@ public class BoardMap {
         return Math.min(verifyBishop(srcPos, destPos), verifyRook(srcPos, destPos));
     }
 
+    private static final int[] VALID_OFFSETS = {1, -1, 7, -7, 9, -9, 8, -8};
     private int verifyKing(int srcPos, int destPos) {
-        // 1 square, check if it gets put in check after some time
+        if(this.checkMethod.useBits()) {
+            for(int i : VALID_OFFSETS) {
+                if(srcPos - destPos == i) {
+                    // if 0, means the destination got cleared by the attack mask, hence illegal
+                    return (BoardMap.getMask(destPos) & ~this.getAttackMask(this.getEnemyBoard().color)) != 0 ? 0 : MovementEvent.REVEALS_CHECK.code();
+                }
+            }
+            return MovementEvent.ILLEGAL.code();
+        }
+        int file = BoardHelper.getFile(srcPos);
+        int rank = BoardHelper.getRank(srcPos);
+        int destFile = BoardHelper.getFile(destPos);
+        int destRank = BoardHelper.getRank(destPos);
+        if(Math.abs(file - destFile) > 1) return MovementEvent.ILLEGAL.code();
+        if(Math.abs(rank - destRank) > 1) return MovementEvent.ILLEGAL.code();
+        if(((1L << destPos) & ~this.getAttackMask(enemyBoard.get().color)) == 0) return MovementEvent.REVEALS_CHECK.code();
         return 0;
     }
 
-    // These methods exist to adapt with the aforementioned issue
-    // in #handleMove()
-
-    private int getRank(int src) {
-        return BoardHelper.getRank(src);
+    /**
+     * Returns whether the current king gets cleared with the enemy
+     * attack mask
+     */
+    private boolean inCheck() {
+        return ((king & ~this.getAttackMask(enemyBoard.get().color)) == 0);
     }
 
-    private int getFile(int src) {
-        return BoardHelper.getFile(src);
+    private long getAttackMask(int side) {
+        long ll = 0L;
+        for(int i = 0; i < 64; i++) {
+            int v = this.getPieceAt(i);
+            int color = v & COLOR_MASK;
+            int piece = v & PIECE_MASK;
+            if(color != side) continue;
+            ll |= AttackTable.getMaskAt(piece, i);
+        }
+        return ll;
     }
 
     /**
@@ -540,6 +540,18 @@ public class BoardMap {
         }
     }
 
+    private long mergePieceMask() {
+        long ll = 0;
+        for (BoardItr it = this.itr(); it.hasNext(); ) {
+            ll |= it.nextLong();
+        }
+        return ll;
+    }
+
+    private long mergeAllPieces() {
+        return this.mergePieceMask() | this.getEnemyBoard().mergePieceMask();
+    }
+
     /**
      * Initializes the board map
      * @return the board, with the returned type being white
@@ -552,13 +564,46 @@ public class BoardMap {
         long blackQueen = QUEEN_MASK << 56;
         long blackKing = KING_MASK << 56;
 
-        BoardMap white = new BoardMap(PAWN_MASK, BISHOP_MASK, KNIGHT_MASK, ROOK_MASK, QUEEN_MASK, KING_MASK, WHITE);
+        BoardMap white = new BoardMap( PAWN_MASK, BISHOP_MASK, KNIGHT_MASK, ROOK_MASK, QUEEN_MASK, KING_MASK, WHITE);
         BoardMap black = new BoardMap(blackPawns, blackBishop, blackKnight, blackRook, blackQueen, blackKing, BLACK);
         white.enemyBoard.set(black);
         black.enemyBoard.set(white);
         white.pawnAdvance = 0xFF;
         black.pawnAdvance = 0xFF;
         return white;
+    }
+
+    // Translates the given code to the event
+    private static MovementEvent translate(int code) {
+        if((code & ~PIECE_MASK) == 0) return null;
+        return MovementEvent.getTranslationCode(code);
+    }
+
+    /**
+     * Retrieves a mask with all bits but the specified location turned off.
+     * This shifts from the largest bit, whereas {@link BoardMap#getByteMask(int)}
+     * shifts from the smallest bit.
+     * @param location the bit position to be turned off
+     * @return a mask with all bits but the location turned off.
+     */
+    private static long getMask(int location) {
+        return 1L << location;
+    }
+
+    // Retrieves the mask used for FEN
+    private static long getFENMask(int location) {
+        return Long.MIN_VALUE >>> location;
+    }
+
+    /**
+     * Retrieves a bitmask with the specified position turned on.
+     * This shifts from the smallest bit, whereas {@link BoardMap#getMask(int)}
+     * shifts from the largest bit.
+     * @see BoardMap#getMask(int)
+     */
+    private static int getByteMask(int position) {
+        return 0b10000000 >>> position;
+        // return ~(1 << position);
     }
 
     @Override
@@ -591,7 +636,7 @@ public class BoardMap {
                 case 4 -> ROOK;
                 case 5 -> QUEEN;
                 case 6 -> KING;
-                default -> throw new RuntimeException("internal error: unexpected cursor " + cursor);
+                default -> throw new RuntimeException(STR."internal error: unexpected cursor \{cursor}");
             };
         }
 
@@ -600,8 +645,7 @@ public class BoardMap {
             return cursor < 6;
         }
 
-        @Override
-        public Long next() {
+        public long nextLong() {
             return switch (cursor++) {
                 case 0 -> pawn;
                 case 1 -> bishop;
@@ -609,8 +653,27 @@ public class BoardMap {
                 case 3 -> rook;
                 case 4 -> queen;
                 case 5 -> king;
-                default -> throw new RuntimeException("internal exception: unexpected cursor reached: " + cursor);
+                default -> throw new RuntimeException(STR."internal exception: unexpected cursor reached: \{cursor}");
             };
+        }
+
+        @Override
+        public Long next() {
+            return nextLong();
+        }
+    }
+
+    public enum CheckMethod {
+        MANUAL,
+        BITS
+        ;
+
+        public boolean useBits() {
+            return this == BITS;
+        }
+
+        public boolean manual() {
+            return this == MANUAL;
         }
     }
 }

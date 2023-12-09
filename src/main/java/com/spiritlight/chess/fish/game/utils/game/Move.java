@@ -1,7 +1,5 @@
 package com.spiritlight.chess.fish.game.utils.game;
 
-import com.spiritlight.chess.fish.game.utils.board.BoardHelper;
-
 /**
  * Denoting a move
  * @param from the square from
@@ -44,8 +42,8 @@ public record Move(int from, int to) {
      * Converts the string to a move. Note that
      * the converted position does <b>not</b> correspond
      * to the code used in {@link com.spiritlight.chess.fish.game.FEN}.
-     * @param from the from line
-     * @param to the to line
+     * @param from the move from
+     * @param to the move to
      * @return a move describing the move.
      */
     public static Move of(String from, String to) {
@@ -65,7 +63,7 @@ public record Move(int from, int to) {
     }
 
     public static String parseLocation(int src) {
-        return "" + (char) ((src % 8) + 'a') + (char) ((src / 8) + '1');
+        return STR."\{(char) ((src % 8) + 'a')}\{(char) ((src / 8) + '1')}";
     }
 
     public static int parseLocation(String src) {
@@ -80,9 +78,6 @@ public record Move(int from, int to) {
         int fromRank = from / 8;
         int toFile = to % 8;
         int toRank = to / 8;
-        return "Move[" + (char) (fromFile + 'a') + (char) (fromRank + '1') +
-                ',' + ' ' +
-                (char) (toFile + 'a') + (char) (toRank + '1') +
-                ']';
+        return STR."Move[\{(char) (fromFile + 'a')}\{(char) (fromRank + '1')}\{','}\{' '}\{(char) (toFile + 'a')}\{(char) (toRank + '1')}\{']'}";
     }
 }

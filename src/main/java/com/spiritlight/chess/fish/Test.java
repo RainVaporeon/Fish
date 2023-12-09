@@ -72,8 +72,15 @@ public class Test {
         timer.fence("table.attack.getall");
         testAttackMoveGetAll();
         timer.record("table.attack.getall");
+        timer.fence("test.misc");
+        testTest();
+        timer.record("test.misc");
         System.out.println(timer.getRecordString());
         System.out.println("All test case passed! Congratulations!");
+    }
+
+    private static void testTest() {
+        assertTrue(() -> Arrays.stream(new int[1024]).boxed().toList().stream().allMatch(i -> i == 0), "not all 0");
     }
 
     private static void testAttackMoveGetAll() {
@@ -92,7 +99,7 @@ public class Test {
         int knightSource = Move.parseLocation("d4");
         String[] locations = {"c2", "e2", "b3", "f3", "b5", "f5", "c6", "e6"};
         for(String dest : locations) {
-            assertTrue(knight.canMove(knightSource, Move.parseLocation(dest)), "Invalid moveset d4 " + dest);
+            assertTrue(knight.canMove(knightSource, Move.parseLocation(dest)), STR."Invalid moveset d4 \{dest}");
         }
         System.out.println("Knight move passed");
         BoardMap rook = BoardMap.fromFENString("4r3/2k5/4R3/8/rr2R1Rr/8/2K5/4r3 w - - 0 1");
@@ -100,10 +107,10 @@ public class Test {
         String[] okLocations = {"e1", "e2", "e3", "b4", "c4", "d4", "f4", "e5"};
         String[] noOkLocations = {"a4", "g4", "e6", "h4", "e7", "e8"};
         for(String dest : okLocations) {
-            assertTrue(rook.canMove(rookSource, Move.parseLocation(dest)), "Invalid moveset e4 " + dest);
+            assertTrue(rook.canMove(rookSource, Move.parseLocation(dest)), STR."Invalid moveset e4 \{dest}");
         }
         for(String dest : noOkLocations) {
-            assertFalse(rook.canMove(rookSource, Move.parseLocation(dest)), "Valid invalid moveset e4 " + dest);
+            assertFalse(rook.canMove(rookSource, Move.parseLocation(dest)), STR."Valid invalid moveset e4 \{dest}");
         }
         System.out.println("Rook move passed");
     }
@@ -119,7 +126,7 @@ public class Test {
     private static void testPlay() {
         assertSuccess(() -> {
             BoardMap map = BoardMap.initialize();
-            System.out.println("Evaluation: " + BoardEvaluator.evaluateFormatted(map, GameState.EARLY_GAME));
+            System.out.println(STR."Evaluation: \{BoardEvaluator.evaluateFormatted(map, GameState.EARLY_GAME)}");
 
             System.out.println("-".repeat(32));
             System.out.println(map.boardView());
@@ -130,7 +137,7 @@ public class Test {
             System.out.println("Playing e5");
             map.update("e7, e5");
 
-            System.out.println("Evaluation: " + BoardEvaluator.evaluateFormatted(map, GameState.EARLY_GAME));
+            System.out.println(STR."Evaluation: \{BoardEvaluator.evaluateFormatted(map, GameState.EARLY_GAME)}");
 
             System.out.println("-".repeat(32));
             System.out.println(map.boardView());
@@ -148,7 +155,7 @@ public class Test {
             System.out.println(map.boardView());
             System.out.println(map.flatBoardView());
 
-            System.out.println("Evaluation: " + BoardEvaluator.evaluateFormatted(map, GameState.MIDDLE_GAME));
+            System.out.println(STR."Evaluation: \{BoardEvaluator.evaluateFormatted(map, GameState.MIDDLE_GAME)}");
         }, "Unexpected error whilst evaluating position");
     }
 
@@ -175,13 +182,13 @@ public class Test {
         System.out.println(board.boardView());
         System.out.println(board.flatBoardView());
         System.out.println(board.toFENString());
-        assertFalse(event::illegal, "Illegal movement for legal move: for move " + move);
-        assertEquals(event.capturedPiece(), NONE, "Unexpected capture: " + event.capturedPiece());
-        assertEquals(event.capturingPiece(), WHITE | PAWN, "Unexpected source: " + event.capturingPiece());
+        assertFalse(event::illegal, STR."Illegal movement for legal move: for move \{move}");
+        assertEquals(event.capturedPiece(), NONE, STR."Unexpected capture: \{event.capturedPiece()}");
+        assertEquals(event.capturingPiece(), WHITE | PAWN, STR."Unexpected source: \{event.capturingPiece()}");
         assertEquals(board.toFENString(), "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1", "Unexpected FEN");
         Move illegal = Move.of("e4, e6");
         MovementEvent illegalEvent = board.update(illegal);
-        assertTrue(illegalEvent::illegal, "Illegal movement was legal: for move " + illegalEvent);
+        assertTrue(illegalEvent::illegal, STR."Illegal movement was legal: for move \{illegalEvent}");
         assertEquals(board.toFENString(), "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1", "Unexpected FEN after illegal move");
     }
 
@@ -257,20 +264,20 @@ public class Test {
                     System.err.println(saved);
                     fail++;
                 } else {
-                    System.out.println("Correct FEN position: " + saved);
+                    System.out.println(STR."Correct FEN position: \{saved}");
                     success++;
                 }
             } catch (Exception ex) {
-                System.err.println("Unexpected exception during loading FEN string " + fen);
+                System.err.println(STR."Unexpected exception during loading FEN string \{fen}");
                 throw new RuntimeException(ex);
             }
         }
 
         for(String fen : INVALID_FEN_STRINGS) {
-            assertFail(() -> FEN.load(fen), "String " + fen + " parsed successfully unexpectedly.");
+            assertFail(() -> FEN.load(fen), STR."String \{fen} parsed successfully unexpectedly.");
         }
 
-        System.out.println("FEN parsing test finished, " + success + " success, " + fail + " fail.");
+        System.out.println(STR."FEN parsing test finished, \{success} success, \{fail} fail.");
     }
 
     /**
@@ -295,7 +302,7 @@ public class Test {
             case BLACK | QUEEN -> "♛";
             case WHITE | KING -> "♔";
             case BLACK | KING -> "♚";
-            default -> throw new IllegalArgumentException("for value " + board[i] + " in pattern " + Arrays.toString(board));
+            default -> throw new IllegalArgumentException(STR."for value \{board[i]} in pattern \{Arrays.toString(board)}");
         };
     }
 
@@ -305,7 +312,7 @@ public class Test {
     }
 
     private static void assertNotEquals(Object o1, Object o2, String message) {
-        System.out.print("Assertion check: " + o1 + " not equals " + o2 + "...");
+        System.out.print(STR."Assertion check: \{o1} not equals \{o2}...");
         if(Objects.equals(o1, o2)) {
             System.err.printf("""
                     Two values matches:
@@ -313,7 +320,7 @@ public class Test {
                     %s
                     """, o1, o2);
             System.err.println("If the objects are numeric, here's the parsed piece type:");
-            System.err.println(Piece.asString(String.valueOf(o1)) + ", " + Piece.asString(String.valueOf(o2)));
+            System.err.println(STR."\{Piece.asString(String.valueOf(o1))}, \{Piece.asString(String.valueOf(o2))}");
             System.out.println();
             throw new AssertionError(message);
         }
@@ -337,7 +344,7 @@ public class Test {
     }
 
     private static void assertEquals(Object o1, Object o2, String message) {
-        System.out.print("Assertion check: " + o1 + " equals " + o2 + "...");
+        System.out.print(STR."Assertion check: \{o1} equals \{o2}...");
         if(!Objects.equals(o1, o2)) {
             System.err.printf("""
                     Two values does not match:
@@ -345,7 +352,7 @@ public class Test {
                     %s [RHS]
                     """, o1, o2);
             System.err.println("If the objects are numeric, here's the parsed piece type:");
-            System.err.println(Piece.asString(String.valueOf(o1)) + ", " + Piece.asString(String.valueOf(o2)));
+            System.err.println(STR."\{Piece.asString(String.valueOf(o1))}, \{Piece.asString(String.valueOf(o2))}");
             System.out.println();
             throw new AssertionError(message);
         }
@@ -357,12 +364,12 @@ public class Test {
             tr.run();
         } catch (Throwable t) {
             if(type == null || type.length == 0) {
-                System.out.println("Fail assertion passed, caught " + t.getClass().getCanonicalName() + ": " + t.getMessage());
+                System.out.println(STR."Fail assertion passed, caught \{t.getClass().getCanonicalName()}: \{t.getMessage()}");
                 return;
             }
             for(Throwable expect : type) {
                 if(expect.getClass().isAssignableFrom(t.getClass()))  {
-                    System.out.println("Fail assertion passed, caught " + t.getClass().getCanonicalName() + ": " + t.getMessage());
+                    System.out.println(STR."Fail assertion passed, caught \{t.getClass().getCanonicalName()}: \{t.getMessage()}");
                     return;
                 }
             }

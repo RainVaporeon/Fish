@@ -27,7 +27,7 @@ public class BoardHelper {
     }
 
     public static String getPositionString(int position) {
-        return "" + (char) ('a' + getFile(position)) + (char) ('1' + getRank(position));
+        return STR."\{(char) ('a' + getFile(position))}\{(char) ('1' + getRank(position))}";
     }
 
     /**
@@ -72,6 +72,22 @@ public class BoardHelper {
                 1 %s | %s | %s | %s | %s | %s | %s | %s |
                 + a + b + c + d + e + f + g + h +
                 """, (Object[]) array.toArray());
+    }
+
+    /**
+     * Visualizes the given long pattern in an 8x8 board
+     * @param pattern the pattern
+     * @return the bit board representation of the long
+     */
+    public static String visualize(long pattern) {
+        StringBuilder builder = new StringBuilder();
+        for(int i = 0; i < 8; i++) {
+            for (int j = 0; j < 8; j++) {
+                builder.append((pattern & 1L << i * 8 + j) == 0 ? 0 : 1);
+            }
+            builder.append("\n");
+        }
+        return builder.toString();
     }
 
     /**

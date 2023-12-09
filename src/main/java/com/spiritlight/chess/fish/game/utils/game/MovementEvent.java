@@ -78,7 +78,7 @@ public class MovementEvent {
     }
 
     public boolean illegal() {
-        System.out.println("Movement=" + getReason(this) + " | " + this);
+        System.out.println(STR."Movement=\{getReason(this)} | \{this}");
         return move == null;
     }
 
@@ -115,10 +115,7 @@ public class MovementEvent {
 
     @Override
     public String toString() {
-        return "MovementEvent[" +
-                "capturingPiece=" + capturingPiece + ", " +
-                "capturedPiece=" + capturedPiece + ", " +
-                "move=" + move + ']';
+        return STR."MovementEvent[capturingPiece=\{capturingPiece}, capturedPiece=\{capturedPiece}, move=\{move}\{']'}";
     }
 
     public static MovementEvent getTranslationCode(int code) {
@@ -129,7 +126,7 @@ public class MovementEvent {
         MovementEvent event = new MovementEvent(code, null) {
             @Override
             public String toString() {
-                return message + " (Code " + Integer.toHexString(code) + ")";
+                return STR."\{message} (Code \{Integer.toHexString(code)})";
             }
         };
         errorMap.put(code, event);

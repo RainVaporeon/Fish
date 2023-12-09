@@ -70,7 +70,7 @@ public class BoardEvaluator {
             case ROOK -> ROOK_SCORE;
             case QUEEN -> QUEEN_SCORE;
             case KING -> Integer.MAX_VALUE >> 1;
-            default -> throw new IllegalStateException("Unexpected value: " + (piece & ~COLOR_MASK));
+            default -> throw new IllegalStateException(STR."Unexpected value: \{piece & ~COLOR_MASK}");
         };
     }
 

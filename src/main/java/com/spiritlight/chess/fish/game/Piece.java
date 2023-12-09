@@ -7,7 +7,6 @@ import com.spiritlight.chess.fish.internal.annotation.MaskType;
 import com.spiritlight.chess.fish.internal.exceptions.SystemError;
 import com.spiritlight.fishutils.collections.IntList;
 
-import static com.spiritlight.chess.fish.game.utils.GameConstants.SQRT_5;
 import static com.spiritlight.chess.fish.game.utils.game.Move.FORWARD_OFFSET;
 
 public class Piece {
@@ -60,7 +59,7 @@ public class Piece {
      * go to
      */
     public static int[] sliding(int piece, int src) {
-        if (!Piece.isSlidingPiece(piece)) throw new SystemError("Unexpected call to sliding() with parameter " + piece + ", " + src);
+        if (!Piece.isSlidingPiece(piece)) throw new SystemError(STR."Unexpected call to sliding() with parameter \{piece}, \{src}");
         if (piece == PAWN) return new int[]{src + FORWARD_OFFSET};
         int file = BoardHelper.getFile(src);
         int rank = BoardHelper.getRank(src);
@@ -98,9 +97,9 @@ public class Piece {
                         x = file + idx;
                         y = rank - idx;
                     }
-                    default -> throw new IllegalStateException("Unexpected value: " + mode);
+                    default -> throw new IllegalStateException(STR."Unexpected value: \{mode}");
                 }
-                InternLogger.getLogger().debug("Generated move " + x + ", " + y + " at src " + src + " for piece " + asString(piece));
+                InternLogger.getLogger().debug(STR."Generated move \{x}, \{y} at src \{src} for piece \{asString(piece)}");
                 if(x < 0 || x > 7 || y < 0 || y > 7) {
                     InternLogger.getLogger().debug("Illegal move, skipping it...");
                     idx = 1; // Start at 1 to exclude itself
@@ -201,7 +200,7 @@ public class Piece {
 
     /**
      * Converts the given piece into its string representation.
-     *
+     * <p>
      * The conversion result follows this rule: <pre>
      *     If the 4th bit is on... append "White "
      *     If the 5th bit is on... append "Black "

@@ -30,7 +30,7 @@ public class FEN {
                         count = 0;
                         continue;
                     }
-                    if(boardCursor % 8 - count < 0) throw new IllegalArgumentException("FEN String illegal: excepted 8 ranks, found " + count);
+                    if(boardCursor % 8 - count < 0) throw new IllegalArgumentException(STR."FEN String illegal: excepted 8 ranks, found \{count}");
                     if(Character.isDigit(c)) {
                         int advances = c - '0';
                         boardCursor += advances; // Skip these stuffs
@@ -40,7 +40,7 @@ public class FEN {
                     }
                     count++;
                 }
-                if(boardCursor != 64) throw new IllegalArgumentException("board position mismatch: expected 64, got " + boardCursor);
+                if(boardCursor != 64) throw new IllegalArgumentException(STR."board position mismatch: expected 64, got \{boardCursor}");
             } else {
                 // No need to worry about any IOOBs as we are iterating the string itself
                 switch (mode) {
@@ -49,7 +49,7 @@ public class FEN {
                     case 3: board[66] = parseEnPassant(str); break;
                     case 4: board[67] = parseHalfMove(str); break;
                     case 5: board[68] = parseFullMove(str); break;
-                    default: throw new IllegalArgumentException("unexpected mode: " + mode + " for input FEN string " + setup);
+                    default: throw new IllegalArgumentException(STR."unexpected mode: \{mode} for input FEN string \{setup}");
                 }
             }
             mode++;
@@ -117,7 +117,7 @@ public class FEN {
             case 'R' -> ROOK;
             case 'Q' -> QUEEN;
             case 'K' -> KING;
-            default -> throw new IllegalArgumentException("for input character: " + (int) c);
+            default -> throw new IllegalArgumentException(STR."for input character: \{(int) c}");
         };
         return colorMask | value;
     }
@@ -132,7 +132,7 @@ public class FEN {
             case ROOK -> 'r';
             case QUEEN -> 'q';
             case KING -> 'k';
-            default -> throw new IllegalArgumentException("unexpected value " + piece + " (Masked value: " + pieceType + ")");
+            default -> throw new IllegalArgumentException(STR."unexpected value \{piece} (Masked value: \{pieceType})");
         };
         if(value == ' ') return value;
 
@@ -144,7 +144,7 @@ public class FEN {
         return switch (in) {
             case "w" -> WHITE_TURN;
             case "b" -> BLACK_TURN;
-            default -> throw new IllegalArgumentException("Parsing turn, for input: " + in);
+            default -> throw new IllegalArgumentException(STR."Parsing turn, for input: \{in}");
         };
     }
 
@@ -153,7 +153,7 @@ public class FEN {
     }
 
     public static int parseCastle(String in) {
-        InternLogger.getLogger().debug("[FEN] Found castle input " + in);
+        InternLogger.getLogger().debug(STR."[FEN] Found castle input \{in}");
         int value = 0;
         if(in.equals("-")) return value;
         if(in.contains("Q")) value |= WHITE_CASTLE_QUEEN_SIDE;

@@ -41,7 +41,7 @@ public class LaunchArgs {
      * @param option the option
      */
     public static void register(LaunchOption option) {
-        if(optionMap.isEmpty()) throw new SystemError("late launch option: " + LaunchOption.getString(option));
+        if(optionMap.isEmpty()) throw new SystemError(STR."late launch option: \{LaunchOption.getString(option)}");
         Pair<String, Consumer<String>> pair = option.getActionPair();
         optionMap.put(pair.getKey(), pair.getValue());
     }

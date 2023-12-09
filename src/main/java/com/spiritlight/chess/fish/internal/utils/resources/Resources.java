@@ -10,7 +10,7 @@ public class Resources {
         try {
             InputStream v = Resources.class.getResourceAsStream(file);
             if(v != null || file.startsWith("/")) return v;
-            return Resources.class.getResourceAsStream("/" + file);
+            return Resources.class.getResourceAsStream(STR."/\{file}");
         } catch (Exception ex) {
             return null;
         }
