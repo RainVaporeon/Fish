@@ -13,6 +13,8 @@ import com.spiritlight.chess.fish.game.utils.game.MovementEvent;
 import com.spiritlight.chess.fish.internal.InternLogger;
 import com.spiritlight.chess.fish.internal.utils.board.GameBitboard;
 import com.spiritlight.chess.fish.internal.utils.resources.Resources;
+import com.spiritlight.chess.fish.test.TestComponent;
+import com.spiritlight.chess.fish.test.Tests;
 import com.spiritlight.fishutils.misc.ThrowingRunnable;
 import com.spiritlight.fishutils.utils.Stopwatch;
 

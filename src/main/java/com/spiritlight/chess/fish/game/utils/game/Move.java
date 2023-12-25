@@ -57,6 +57,10 @@ public record Move(int from, int to) {
         return new Move(fromPos, toPos);
     }
 
+    public static Move of(int from, int to) {
+        return new Move(from, to);
+    }
+
     public static Move of(String fromTo) {
         String[] arr = fromTo.split(",");
         return of(arr[0].trim(), arr[1].trim());

@@ -1,5 +1,6 @@
 package com.spiritlight.chess.fish.game.utils.board;
 
+import com.spiritlight.chess.fish.game.Piece;
 import com.spiritlight.fishutils.misc.arrays.primitive.LongArray;
 
 public class Magic {
@@ -147,6 +148,14 @@ public class Magic {
 
     public static LongArray bishopMagic() {
         return BISHOP;
+    }
+
+    public static long get(int type, int index) {
+        return switch (type) {
+            case Piece.ROOK -> ROOK_MAGIC[index];
+            case Piece.BISHOP -> BISHOP_MAGIC[index];
+            default -> throw new IllegalArgumentException(STR."For given piece type \{Piece.asString(type)}");
+        };
     }
 
     public static String visualize(long pattern) {

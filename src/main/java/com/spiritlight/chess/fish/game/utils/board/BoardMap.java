@@ -8,8 +8,10 @@ import com.spiritlight.chess.fish.game.utils.game.Move;
 import com.spiritlight.chess.fish.game.utils.game.MovementEvent;
 import com.spiritlight.chess.fish.internal.InternLogger;
 import com.spiritlight.chess.fish.internal.exceptions.SystemError;
-import com.spiritlight.chess.fish.internal.utils.StableField;
 import com.spiritlight.fishutils.collections.Pair;
+import com.spiritlight.fishutils.internal.UtilityAccess;
+import com.spiritlight.fishutils.internal.accessor.StableFieldAccess;
+import com.spiritlight.fishutils.misc.StableField;
 import com.spiritlight.fishutils.misc.annotations.Modifies;
 
 import java.util.Arrays;
@@ -20,13 +22,15 @@ import static com.spiritlight.chess.fish.game.Piece.*;
 import static com.spiritlight.chess.fish.game.utils.GameConstants.*;
 import static com.spiritlight.chess.fish.game.utils.game.Move.FORWARD_OFFSET;
 
-public class BoardMap {
+public class BoardMap implements Cloneable {
     private static final long PAWN_MASK   = 0xFF00;
     private static final long BISHOP_MASK = 0b00100100;
     private static final long KNIGHT_MASK = 0b01000010;
     private static final long ROOK_MASK   = 0b10000001;
     private static final long KING_MASK   = 0b00010000;
     private static final long QUEEN_MASK  = 0b00001000;
+
+    private static final StableFieldAccess sfa = UtilityAccess.getInstance().getStableFieldAccess();
 
     private long pawn;
     private long bishop;
@@ -70,6 +74,12 @@ public class BoardMap {
         return forceUpdate(Move.of(move));
     }
 
+    /**
+     * Forces a movement update, ignoring the turn to move.
+     * @param move the move
+     * @return event denoting the move
+     * @apiNote this will also change the turn to play.
+     */
     public MovementEvent forceUpdate(Move move) {
         int src  = move.sourcePos();
         int dest = move.destPos();
@@ -138,6 +148,10 @@ public class BoardMap {
         }
         // InternLogger.getLogger().debug("Self piece at board " + color + " at " + src + " with fen " + fen + ": none");
         return NONE;
+    }
+
+    public int enpassantSquare() {
+        return this.enPassantSquare;
     }
 
     /**
@@ -255,6 +269,22 @@ public class BoardMap {
         return new BoardItr();
     }
 
+    /**
+     * Gets all pieces mapped to a 64-bit value.
+     * @return
+     */
+    public long getBlocker() {
+        return pawn | bishop | knight | rook | queen | king;
+    }
+
+    /**
+     * Gets all pieced from both sides of the board to a 64-bit value.
+     * @return
+     */
+    public long getBlockers() {
+        return this.getBlocker() | this.getEnemyBoard().getBlocker();
+    }
+
     public boolean canMove(int srcPos, int destPos) {
         int srcPiece = this.getPieceAt(srcPos);
         int destPiece = this.getPieceAt(destPos);
@@ -269,6 +299,24 @@ public class BoardMap {
             default -> throw new IllegalStateException(STR."Unexpected value: \{srcPiece & ~COLOR_MASK}");
         };
         return handlerCode == 0;
+    }
+
+    public BoardMap fork() {
+        BoardMap current = this.clone();
+        BoardMap enemy = this.getEnemyBoard().clone();
+        sfa.updateField(current.enemyBoard, enemy);
+        sfa.updateField(enemy.enemyBoard, current);
+        return current;
+    }
+
+    @Override
+    public BoardMap clone() {
+        try {
+            BoardMap clone = (BoardMap) super.clone();
+            return clone;
+        } catch (CloneNotSupportedException what) {
+            throw new AssertionError(what);
+        }
     }
 
     /**
@@ -492,6 +540,11 @@ public class BoardMap {
         return ((king & ~this.getAttackMask(enemyBoard.get().color)) == 0);
     }
 
+    /**
+     * Gets all the current attacked squares for given side
+     * @param side the side
+     * @return the attack mask
+     */
     private long getAttackMask(int side) {
         long ll = 0L;
         for(int i = 0; i < 64; i++) {
