@@ -39,7 +39,9 @@ public class BoardMap implements Cloneable {
     private long queen;
     private long king;
     private final int color;
-    private final StableField<BoardMap> enemyBoard;
+    // Update: Deprecated the use of StableField and removed final
+    //  to make cloning easier.
+    private BoardMap enemyBoard;
     // Consider this for castling, ~0xF0/0x0F to cancel one
     private int castle = 0xFF;
     private int pawnAdvance = 0x0;
@@ -59,7 +61,7 @@ public class BoardMap implements Cloneable {
         this.king = king;
         this.color = color;
         this.checkMethod = CheckMethod.MANUAL;
-        this.enemyBoard = new StableField<>(null);
+        this.enemyBoard = null;
     }
 
     public int getColor() {
@@ -67,7 +69,15 @@ public class BoardMap implements Cloneable {
     }
 
     public BoardMap getEnemyBoard() {
-        return enemyBoard.get();
+        return enemyBoard;
+    }
+
+    public MovementEvent unmake(String move) {
+        return forceUpdate(Move.ofInverse(move));
+    }
+
+    public MovementEvent unmake(Move move) {
+        return forceUpdate(move.invert());
     }
 
     public MovementEvent forceUpdate(String move) {
@@ -88,9 +98,9 @@ public class BoardMap implements Cloneable {
         int destPiece = this.getPieceAt(dest);
 
         if(turn == WHITE_TURN) {
-            return handleMove(srcPiece, src, dest, destPiece, enemyBoard.get(), move);
+            return handleMove(srcPiece, src, dest, destPiece, enemyBoard, move, true);
         } else {
-            return this.enemyBoard.get().handleMove(srcPiece, src, dest, destPiece, this, move);
+            return this.enemyBoard.handleMove(srcPiece, src, dest, destPiece, this, move, true);
         }
     }
 
@@ -115,14 +125,14 @@ public class BoardMap implements Cloneable {
         if(srcPiece == NONE) return MovementEvent.ILLEGAL;
 
         if(turn == WHITE_TURN) {
-            return handleMove(srcPiece, src, dest, destPiece, enemyBoard.get(), move);
+            return handleMove(srcPiece, src, dest, destPiece, enemyBoard, move, false);
         } else {
-            return this.enemyBoard.get().handleMove(srcPiece, src, dest, destPiece, this, move);
+            return this.enemyBoard.handleMove(srcPiece, src, dest, destPiece, this, move, false);
         }
     }
 
     public Pair<GameState, EndType> getGameState() {
-        int clock = this.halfMove + enemyBoard.get().halfMove;
+        int clock = this.halfMove + enemyBoard.halfMove;
         if(clock >= 100) return Pair.of(GameState.GAME_END, EndType.DRAW_50_MOVE);
         // TODO: Either rework or change this
         throw new UnsupportedOperationException("not implemented");
@@ -132,7 +142,7 @@ public class BoardMap implements Cloneable {
         // InternLogger.getLogger().debug("Debugging piece at board " + color + ": " + src);
         int self = this.getSelfPieceAt(src, false);
         // InternLogger.getLogger().debug("Self piece: " + Piece.asString(self));
-        if(self == NONE) return this.enemyBoard.get().getSelfPieceAt(src, false);
+        if(self == NONE) return this.enemyBoard.getSelfPieceAt(src, false);
         return self;
     }
 
@@ -160,17 +170,17 @@ public class BoardMap implements Cloneable {
      * @return the fen string
      */
     public String toFENString() {
-        if(this.color == BLACK && this.enemyBoard.get().color == BLACK) {
-            throw new SystemError(STR."unexpected color: this and enemy board color is black. dump: \{this}, enemy=\{this.enemyBoard.get()}");
+        if(this.color == BLACK && this.enemyBoard.color == BLACK) {
+            throw new SystemError(STR."unexpected color: this and enemy board color is black. dump: \{this}, enemy=\{this.enemyBoard}");
         }
-        if(this.color == BLACK) return this.enemyBoard.get().toFENString(); // Convenience purposes only.
+        if(this.color == BLACK) return this.enemyBoard.toFENString(); // Convenience purposes only.
         int[] positions = new int[69]; // pos:color
         int arrIdx = 0;
         for(int rank = 0; rank < 8; rank++) {
             for(int file = 7; file >= 0; file--) {
                 int pos = (rank * 8) + file;
                 int piece = this.getSelfPieceAt(pos, true);
-                int enemy = enemyBoard.get().getSelfPieceAt(pos, true);
+                int enemy = enemyBoard.getSelfPieceAt(pos, true);
                 if(piece == NONE && enemy == NONE) positions[arrIdx] = NONE;
                 if(piece == NONE) positions[arrIdx] = enemy;
                 if(enemy == NONE) positions[arrIdx] = piece;
@@ -182,12 +192,12 @@ public class BoardMap implements Cloneable {
         int castleState = 0;
         if((this.castle & 0x0F) != 0) castleState |= WHITE_CASTLE_KING_SIDE;
         if((this.castle & 0xF0) != 0) castleState |= WHITE_CASTLE_QUEEN_SIDE;
-        if((enemyBoard.get().castle & 0x0F) != 0) castleState |= BLACK_CASTLE_KING_SIDE;
-        if((enemyBoard.get().castle & 0xF0) != 0) castleState |= BLACK_CASTLE_QUEEN_SIDE;
+        if((enemyBoard.castle & 0x0F) != 0) castleState |= BLACK_CASTLE_KING_SIDE;
+        if((enemyBoard.castle & 0xF0) != 0) castleState |= BLACK_CASTLE_QUEEN_SIDE;
         positions[TURN] = turn;
         positions[CASTLE] = castleState;
         positions[EN_PASSANT] = BoardHelper.getFENPosition(enPassantSquare);
-        positions[HALF_MOVE] = (this.halfMove + enemyBoard.get().halfMove);
+        positions[HALF_MOVE] = (this.halfMove + enemyBoard.halfMove);
         positions[FULL_MOVE] = this.fullMove; // Synchronized
         return FEN.get(positions);
     }
@@ -197,8 +207,8 @@ public class BoardMap implements Cloneable {
         int arrIdx = 0;
         BoardMap boardMap = BoardMap.clearBoard(WHITE);
         BoardMap enemyBoardMap = BoardMap.clearBoard(BLACK);
-        boardMap.enemyBoard.set(enemyBoardMap);
-        enemyBoardMap.enemyBoard.set(boardMap);
+        boardMap.enemyBoard = enemyBoardMap;
+        enemyBoardMap.enemyBoard = boardMap;
         boardMap.castle = 0;
         enemyBoardMap.castle = 0;
         for(int rank = 0; rank < 8; rank++) {
@@ -303,17 +313,16 @@ public class BoardMap implements Cloneable {
 
     public BoardMap fork() {
         BoardMap current = this.clone();
-        BoardMap enemy = this.getEnemyBoard().clone();
-        sfa.updateField(current.enemyBoard, enemy);
-        sfa.updateField(enemy.enemyBoard, current);
+        BoardMap enemy = this.enemyBoard.clone();
+        current.enemyBoard = enemy;
+        enemy.enemyBoard = current;
         return current;
     }
 
     @Override
     public BoardMap clone() {
         try {
-            BoardMap clone = (BoardMap) super.clone();
-            return clone;
+            return (BoardMap) super.clone();
         } catch (CloneNotSupportedException what) {
             throw new AssertionError(what);
         }
@@ -326,8 +335,9 @@ public class BoardMap implements Cloneable {
      * @param destPos the destination position
      * @param destPiece the captured piece
      * @param enemyMap the enemy BoardMap to update if {@code capturedPiece != null}
+     * @param forced whether this move should ignore all validity checks
      */
-    private MovementEvent handleMove(int srcPiece, int srcPos, int destPos, int destPiece, BoardMap enemyMap, Move move) {
+    private MovementEvent handleMove(int srcPiece, int srcPos, int destPos, int destPiece, BoardMap enemyMap, Move move, boolean forced) {
         InternLogger.getLogger().debug(STR."Source: \{srcPos}, Destination: \{destPos} (Origin: \{srcPos + 1}, \{destPos + 1})");
         InternLogger.getLogger().debug(STR."State: \{BoardHelper.getPositionString(srcPos + 1)}, \{BoardHelper.getPositionString(destPos + 1)}");
         InternLogger.getLogger().debug(STR."Has: \{Piece.asString(srcPiece)}, To: \{Piece.asString(destPiece)}");
@@ -351,7 +361,7 @@ public class BoardMap implements Cloneable {
 
         MovementEvent error = translate(handlerCode);
         // error.code() & 0x07 is not 0
-        if(error != null) return error;
+        if(error != null && !forced) return error;
 
         // Anything past this line is not going to be interrupted.
 
@@ -382,7 +392,7 @@ public class BoardMap implements Cloneable {
 
         if(turn == BLACK_TURN) {
             fullMove++;
-            enemyBoard.get().fullMove++;
+            enemyBoard.fullMove++;
         }
 
         if(destPiece != NONE) {
@@ -391,7 +401,7 @@ public class BoardMap implements Cloneable {
         }
 
         turn ^= COLOR_MASK;
-        enemyBoard.get().turn ^= COLOR_MASK;
+        enemyBoard.turn ^= COLOR_MASK;
 
         return new MovementEvent(srcPiece, destPiece, move);
     }
@@ -528,7 +538,7 @@ public class BoardMap implements Cloneable {
         int destRank = BoardHelper.getRank(destPos);
         if(Math.abs(file - destFile) > 1) return MovementEvent.ILLEGAL.code();
         if(Math.abs(rank - destRank) > 1) return MovementEvent.ILLEGAL.code();
-        if(((1L << destPos) & ~this.getAttackMask(enemyBoard.get().color)) == 0) return MovementEvent.REVEALS_CHECK.code();
+        if(((1L << destPos) & ~this.getAttackMask(enemyBoard.color)) == 0) return MovementEvent.REVEALS_CHECK.code();
         return 0;
     }
 
@@ -537,7 +547,7 @@ public class BoardMap implements Cloneable {
      * attack mask
      */
     private boolean inCheck() {
-        return ((king & ~this.getAttackMask(enemyBoard.get().color)) == 0);
+        return ((king & ~this.getAttackMask(enemyBoard.color)) == 0);
     }
 
     /**
@@ -619,8 +629,8 @@ public class BoardMap implements Cloneable {
 
         BoardMap white = new BoardMap( PAWN_MASK, BISHOP_MASK, KNIGHT_MASK, ROOK_MASK, QUEEN_MASK, KING_MASK, WHITE);
         BoardMap black = new BoardMap(blackPawns, blackBishop, blackKnight, blackRook, blackQueen, blackKing, BLACK);
-        white.enemyBoard.set(black);
-        black.enemyBoard.set(white);
+        white.enemyBoard = black;
+        black.enemyBoard = white;
         white.pawnAdvance = 0xFF;
         black.pawnAdvance = 0xFF;
         return white;

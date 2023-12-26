@@ -77,8 +77,30 @@ public class Test {
         timer.fence("test.misc");
         testTest();
         timer.record("test.misc");
+        timer.fence("map.clone");
+        testCloneDistinct();
+        timer.record("map.clone");
+        timer.fence("map.eval");
+        testMapEvaluation();
+        timer.record("map.eval");
         System.out.println(timer.getRecordString());
         System.out.println("All test case passed! Congratulations!");
+    }
+
+    private static void testMapEvaluation() {
+        BoardMap map = BoardMap.initialize();
+
+        double rating = BoardEvaluator.evaluate(map, GameState.EARLY_GAME);
+        System.out.println(STR."Evaluate rating = \{rating}");
+    }
+
+    private static void testCloneDistinct() {
+        BoardMap map = BoardMap.initialize();
+
+        BoardMap copy = map.fork();
+
+        assertFalse(map == copy, "reference equality after cloning: curr");
+        assertFalse(map.getEnemyBoard() == copy.getEnemyBoard(), "reference equality after cloning: enemy");
     }
 
     private static void testTest() {
@@ -90,6 +112,7 @@ public class Test {
         AttackTable.getRook().iterator().forEachRemaining(table -> System.out.println(Magic.visualize(table)));
         AttackTable.getQueen().iterator().forEachRemaining(table -> System.out.println(Magic.visualize(table)));
         AttackTable.getKnight().iterator().forEachRemaining(table -> System.out.println(Magic.visualize(table)));
+        AttackTable.getKing().iterator().forEachRemaining(table -> System.out.println(Magic.visualize(table)));
     }
 
     private static void testAttackMoveGen() {

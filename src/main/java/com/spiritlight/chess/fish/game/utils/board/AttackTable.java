@@ -34,10 +34,21 @@ public class AttackTable {
         long[] K = new long[64];
         for(int i = 0; i < 64; i++) {
             long value = 0;
+            int currentRank = BoardHelper.getRank(i);
+            int currentFile = BoardHelper.getFile(i);
+            // dirty thing, though this only runs once on start, so it's probably fine
             for(int offset : kingOffsets) {
-                if(i + offset > 0 && i + offset < 64) {
-                    long mask = 1L << (i + offset);
-                    value |= mask;
+                int position = i + offset;
+                if(position < 0 || position > 63) continue;
+                int rank = BoardHelper.getRank(position);
+                int file = BoardHelper.getFile(position);
+                int rankDiff = Math.abs(rank - currentRank);
+                int fileDiff = Math.abs(file - currentFile);
+                if(rankDiff == 1) {
+                    if(fileDiff <= 1) value |= 1L << position;
+                }
+                if(fileDiff == 1) {
+                    if(rankDiff <= 1) value |= 1L << position;
                 }
             }
             K[i] = value;

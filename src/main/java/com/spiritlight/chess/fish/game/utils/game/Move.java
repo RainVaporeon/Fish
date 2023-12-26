@@ -38,6 +38,10 @@ public record Move(int from, int to) {
         return to;
     }
 
+    public Move invert() {
+        return new Move(to, from);
+    }
+
     /**
      * Converts the string to a move. Note that
      * the converted position does <b>not</b> correspond
@@ -64,6 +68,11 @@ public record Move(int from, int to) {
     public static Move of(String fromTo) {
         String[] arr = fromTo.split(",");
         return of(arr[0].trim(), arr[1].trim());
+    }
+
+    public static Move ofInverse(String fromTo) {
+        String[] arr = fromTo.split(",");
+        return of(arr[1].trim(), arr[0].trim());
     }
 
     public static String parseLocation(int src) {
