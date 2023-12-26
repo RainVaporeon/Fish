@@ -3,7 +3,7 @@ package com.spiritlight.chess.fish.internal.utils.board;
 import com.spiritlight.chess.fish.game.Piece;
 import com.spiritlight.chess.fish.game.utils.GameState;
 import com.spiritlight.chess.fish.internal.InternLogger;
-import com.spiritlight.chess.fish.internal.utils.StableField;
+import com.spiritlight.fishutils.misc.StableField;
 import com.spiritlight.fishutils.misc.arrays.primitive.IntArray;
 
 
