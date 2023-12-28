@@ -28,10 +28,6 @@ import static com.spiritlight.chess.fish.game.utils.GameConstants.*;
 import static com.spiritlight.chess.fish.game.utils.game.Move.BACKWARD_OFFSET;
 import static com.spiritlight.chess.fish.game.utils.game.Move.FORWARD_OFFSET;
 
-// TODO: Make a manager to extract all useful flags, as follows:
-// TODO  - En passant square
-// TODO  - Turn
-// TODO  - Half, Full Move
 public class BoardMap implements Cloneable {
     private static final long PAWN_MASK   = 0xFF00;
     private static final long BISHOP_MASK = 0b00100100;
@@ -41,8 +37,6 @@ public class BoardMap implements Cloneable {
     private static final long QUEEN_MASK  = 0b00001000;
     private static final int CASTLE_K_MASK = 0xF0;
     private static final int CASTLE_Q_MASK = 0x0F;
-
-    private static final StableFieldAccess sfa = UtilityAccess.getInstance().getStableFieldAccess();
 
     // board to represent piece status
     private long pawn;
@@ -59,10 +53,7 @@ public class BoardMap implements Cloneable {
     // Consider this for castling, ~0xF0/0x0F to cancel one
     private int castle = 0xFF; // K=F0, Q=0F
     private int pawnAdvance = 0x0;
-    private int enPassantSquare = 0;
-    private int halfMove = 0;
-    private int fullMove = 1;
-    private int turn = WHITE_TURN;
+    private BoardInfo info;
 
     private CheckMethod checkMethod;
 
@@ -100,10 +91,10 @@ public class BoardMap implements Cloneable {
     }
 
     /**
-     * Forces a movement update, ignoring the turn to move.
+     * Forces a movement update, ignoring the info.turn to move.
      * @param move the move
      * @return event denoting the move
-     * @apiNote this will also change the turn to play.
+     * @apiNote this will also change the info.turn to play.
      */
     public MovementEvent forceUpdate(Move move) {
         int src  = move.sourcePos();
@@ -112,7 +103,7 @@ public class BoardMap implements Cloneable {
         int srcPiece  = this.getPieceAt(src);
         int destPiece = this.getPieceAt(dest);
 
-        if(turn == WHITE_TURN) {
+        if(info.turn == WHITE_TURN) {
             return handleMove(srcPiece, src, dest, destPiece, move, true);
         } else {
             return this.enemyBoard.handleMove(srcPiece, src, dest, destPiece, move, true);
@@ -130,9 +121,9 @@ public class BoardMap implements Cloneable {
         int srcPiece  = this.getPieceAt(src);
         int destPiece = this.getPieceAt(dest);
         // Turn checking
-        if(Piece.color(srcPiece) != (turn == WHITE_TURN ? WHITE : BLACK)) {
+        if(Piece.color(srcPiece) != (info.turn == WHITE_TURN ? WHITE : BLACK)) {
             // InternLogger.getLogger().debug(STR."Piece \{Piece.asString(srcPiece)} is not of color \{Piece.asString(color)}");
-            return turn == WHITE_TURN ? MovementEvent.WHITE_TO_PLAY : MovementEvent.BLACK_TO_PLAY;
+            return info.turn == WHITE_TURN ? MovementEvent.WHITE_TO_PLAY : MovementEvent.BLACK_TO_PLAY;
         }
         // Destination checking; cannot capture pieces of the same color
         if(Piece.color(srcPiece) == Piece.color(destPiece)) {
@@ -141,7 +132,7 @@ public class BoardMap implements Cloneable {
         // Move checking, cannot move from nothing.
         if(srcPiece == NONE) return MovementEvent.ILLEGAL;
 
-        if(turn == WHITE_TURN) {
+        if(info.turn == WHITE_TURN && this.color == WHITE) {
             return handleMove(srcPiece, src, dest, destPiece, move, false);
         } else {
             return this.enemyBoard.handleMove(srcPiece, src, dest, destPiece, move, false);
@@ -149,8 +140,7 @@ public class BoardMap implements Cloneable {
     }
 
     public Pair<GameState, EndType> getGameState() {
-        int clock = this.halfMove + enemyBoard.halfMove;
-        if(clock >= 100) return Pair.of(GameState.GAME_END, EndType.DRAW_50_MOVE);
+        if(info.fullMove >= 50) return Pair.of(GameState.GAME_END, EndType.DRAW_50_MOVE);
         // TODO: Either rework or change this
         throw new UnsupportedOperationException("not implemented");
     }
@@ -177,8 +167,8 @@ public class BoardMap implements Cloneable {
         return NONE;
     }
 
-    public int enpassantSquare() {
-        return this.enPassantSquare;
+    public int enPassantSquare() {
+        return info.enPassantSquare;
     }
 
     /**
@@ -211,11 +201,11 @@ public class BoardMap implements Cloneable {
         if((this.castle & 0x0F) != 0) castleState |= WHITE_CASTLE_QUEEN_SIDE;
         if((enemyBoard.castle & 0xF0) != 0) castleState |= BLACK_CASTLE_KING_SIDE;
         if((enemyBoard.castle & 0x0F) != 0) castleState |= BLACK_CASTLE_QUEEN_SIDE;
-        positions[TURN] = turn;
+        positions[TURN] = info.turn;
         positions[CASTLE] = castleState;
-        positions[EN_PASSANT] = BoardHelper.getFENPosition(enPassantSquare);
-        positions[HALF_MOVE] = (this.halfMove + enemyBoard.halfMove);
-        positions[FULL_MOVE] = this.fullMove; // Synchronized
+        positions[EN_PASSANT] = BoardHelper.getFENPosition(info.enPassantSquare);
+        positions[HALF_MOVE] = info.halfMove;
+        positions[FULL_MOVE] = info.fullMove; // Synchronized
         return FEN.get(positions);
     }
 
@@ -245,9 +235,8 @@ public class BoardMap implements Cloneable {
                 arrIdx++;
             }
         }
-        int turn = layout[TURN];
-        boardMap.turn = turn;
-        enemyBoardMap.turn = turn;
+        BoardInfo info = new BoardInfo();
+        info.turn = layout[TURN];
         int castle = layout[CASTLE];
         int wCastle = castle & WHITE_CASTLE_MASK;
         int bCastle = castle & BLACK_CASTLE_MASK;
@@ -256,16 +245,13 @@ public class BoardMap implements Cloneable {
         if((bCastle & BLACK_CASTLE_KING_SIDE) != 0) enemyBoardMap.castle |= 0xF0;
         if((bCastle & BLACK_CASTLE_QUEEN_SIDE) != 0) enemyBoardMap.castle |= 0x0F;
         int enPassant = layout[EN_PASSANT];
-        boardMap.enPassantSquare = BoardHelper.fromFENPosition(enPassant);
-        enemyBoardMap.enPassantSquare = BoardHelper.fromFENPosition(enPassant);
-        int half = layout[HALF_MOVE];
-        boardMap.halfMove = half;
-        enemyBoardMap.halfMove = half;
-        int full = layout[FULL_MOVE];
-        boardMap.fullMove = full;
-        enemyBoardMap.fullMove = full;
-        if(boardMap.inCheck() && turn == BLACK_TURN) throw new IllegalArgumentException("white in check, but it's black's turn");
-        if(enemyBoardMap.inCheck() && turn == WHITE_TURN) throw new IllegalArgumentException("black in check, but it's white's turn");
+        info.enPassantSquare = BoardHelper.fromFENPosition(enPassant);
+        info.halfMove = layout[HALF_MOVE];
+        info.fullMove = layout[FULL_MOVE];
+        boardMap.info = info;
+        enemyBoardMap.info = info;
+        if(boardMap.inCheck() && info.turn == BLACK_TURN) throw new IllegalArgumentException("white in check, but it's black's info.turn");
+        if(enemyBoardMap.inCheck() && info.turn == WHITE_TURN) throw new IllegalArgumentException("black in check, but it's white's info.turn");
         return boardMap;
     }
 
@@ -381,20 +367,18 @@ public class BoardMap implements Cloneable {
 
         // Anything past this line is not going to be interrupted.
 
-        halfMove++;
-        enemyBoard.halfMove++;
+        info.halfMove++;
 
         boolean enpFlag = false;
         /* Calculating 50-move rule and en passant */
         if(Piece.is(srcPiece, PAWN)) {
-            halfMove = 0;
-            enemyBoard.halfMove = 0;
+            info.halfMove = 0;
 
-            if(destPos == enPassantSquare) {
+            if(destPos == info.enPassantSquare) {
                 if(this.color == WHITE) {
-                    this.enemyBoard.clear(PAWN, 1L << (enPassantSquare + BACKWARD_OFFSET));
+                    this.enemyBoard.clear(PAWN, 1L << (info.enPassantSquare + BACKWARD_OFFSET));
                 } else {
-                    this.enemyBoard.clear(PAWN, 1L << (enPassantSquare + FORWARD_OFFSET));
+                    this.enemyBoard.clear(PAWN, 1L << (info.enPassantSquare + FORWARD_OFFSET));
                 }
                 enpFlag = true;
             }
@@ -430,21 +414,19 @@ public class BoardMap implements Cloneable {
             retain(srcPiece & ~COLOR_MASK, destMask);
         }
 
-        if(turn == BLACK_TURN) {
-            fullMove++;
-            enemyBoard.fullMove++;
+        if(info.turn == BLACK_TURN) {
+            info.fullMove++;
         }
 
         // has a piece at destination, and en passant is not in place,
         // handle here.
         // en passant captures are handled earlier.
-        if(destPiece != NONE && !enpFlag) {
-            halfMove = 0;
+        if(destPiece != NONE && !enpFlag && !castleFlag) {
+            info.halfMove = 0;
             enemyBoard.clear(destPiece & ~COLOR_MASK, destMask);
         }
 
-        turn ^= COLOR_MASK;
-        enemyBoard.turn ^= COLOR_MASK;
+        info.turn ^= TURN_MASK;
 
         return new MovementEvent(srcPiece, destPiece, move);
     }
@@ -458,7 +440,7 @@ public class BoardMap implements Cloneable {
     // method return null (denoting success) if &~0b111 returns
     // 0. Leaving it as is though.
 
-    @Modifies({"enPassantSquare", "pawnAdvance"})
+    @Modifies({"info.enPassantSquare", "pawnAdvance"})
     private int verifyPawn(int srcPos, int destPos, int destPiece) {
         int file = BoardHelper.getFile(srcPos);
         int destFile = BoardHelper.getFile(destPos);
@@ -468,7 +450,7 @@ public class BoardMap implements Cloneable {
         }
         if ((Math.abs(file - destFile) == 1 && destPiece == NONE) || (file - destFile == 0 && destPiece != NONE)) {
             // InternLogger.getLogger().debug("Captures nothing");
-            if(destPos != enPassantSquare) return MovementEvent.ILLEGAL.code();
+            if(destPos != info.enPassantSquare) return MovementEvent.ILLEGAL.code();
         }
 
         if(Math.abs(BoardHelper.getRank(srcPos) - BoardHelper.getRank(destPos)) == 2) {
@@ -476,12 +458,12 @@ public class BoardMap implements Cloneable {
                 // InternLogger.getLogger().debug("Pawn advance does not match with byte mask");
                 return MovementEvent.ILLEGAL.code();
             }
-            if(this.getPieceAt(srcPos + (this.turn == WHITE_TURN ? FORWARD_OFFSET : -FORWARD_OFFSET)) != NONE) {
+            if(this.getPieceAt(srcPos + (info.turn == WHITE_TURN ? FORWARD_OFFSET : -FORWARD_OFFSET)) != NONE) {
                 // InternLogger.getLogger().debug("Pawn advances into something");
                 return MovementEvent.ILLEGAL.code();
             }
             // We add one here to restore it back onto its actual represented location
-            enPassantSquare = srcPos + (this.turn == WHITE_TURN ? FORWARD_OFFSET : -FORWARD_OFFSET);
+            info.enPassantSquare = srcPos + (info.turn == WHITE_TURN ? FORWARD_OFFSET : -FORWARD_OFFSET);
         }
         pawnAdvance &= ~getByteMask(file);
         return 0;
@@ -745,6 +727,9 @@ public class BoardMap implements Cloneable {
         black.enemyBoard = white;
         white.pawnAdvance = 0xFF;
         black.pawnAdvance = 0xFF;
+        BoardInfo sharedBoardInfo = new BoardInfo();
+        white.info = sharedBoardInfo;
+        black.info = sharedBoardInfo;
         return white;
     }
 

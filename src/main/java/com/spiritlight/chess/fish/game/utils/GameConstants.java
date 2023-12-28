@@ -34,6 +34,8 @@ public class GameConstants {
     public static final int WHITE_TURN = 0b00000000;
     @FENConstant
     public static final int BLACK_TURN = 0b00000001;
+    @FENConstant
+    public static final int TURN_MASK = 0b00000011;
 
     public static final double SQRT_5 = Math.sqrt(5);
 
