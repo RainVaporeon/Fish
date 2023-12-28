@@ -7,21 +7,31 @@ import com.spiritlight.chess.fish.game.utils.GameState;
 import com.spiritlight.chess.fish.game.utils.game.Move;
 import com.spiritlight.chess.fish.game.utils.game.MovementEvent;
 import com.spiritlight.chess.fish.internal.InternLogger;
+import com.spiritlight.chess.fish.internal.annotation.Mask;
+import com.spiritlight.chess.fish.internal.annotation.MaskType;
 import com.spiritlight.chess.fish.internal.exceptions.SystemError;
 import com.spiritlight.fishutils.collections.Pair;
 import com.spiritlight.fishutils.internal.UtilityAccess;
 import com.spiritlight.fishutils.internal.accessor.StableFieldAccess;
-import com.spiritlight.fishutils.misc.StableField;
 import com.spiritlight.fishutils.misc.annotations.Modifies;
 
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import java.util.Arrays;
 import java.util.Iterator;
 
 import static com.spiritlight.chess.fish.game.FEN.*;
 import static com.spiritlight.chess.fish.game.Piece.*;
 import static com.spiritlight.chess.fish.game.utils.GameConstants.*;
+import static com.spiritlight.chess.fish.game.utils.game.Move.BACKWARD_OFFSET;
 import static com.spiritlight.chess.fish.game.utils.game.Move.FORWARD_OFFSET;
 
+// TODO: Make a manager to extract all useful flags, as follows:
+// TODO  - En passant square
+// TODO  - Turn
+// TODO  - Half, Full Move
 public class BoardMap implements Cloneable {
     private static final long PAWN_MASK   = 0xFF00;
     private static final long BISHOP_MASK = 0b00100100;
@@ -29,21 +39,25 @@ public class BoardMap implements Cloneable {
     private static final long ROOK_MASK   = 0b10000001;
     private static final long KING_MASK   = 0b00010000;
     private static final long QUEEN_MASK  = 0b00001000;
+    private static final int CASTLE_K_MASK = 0xF0;
+    private static final int CASTLE_Q_MASK = 0x0F;
 
     private static final StableFieldAccess sfa = UtilityAccess.getInstance().getStableFieldAccess();
 
+    // board to represent piece status
     private long pawn;
     private long bishop;
     private long knight;
     private long rook;
     private long queen;
     private long king;
+
     private final int color;
     // Update: Deprecated the use of StableField and removed final
     //  to make cloning easier.
     private BoardMap enemyBoard;
     // Consider this for castling, ~0xF0/0x0F to cancel one
-    private int castle = 0xFF;
+    private int castle = 0xFF; // K=F0, Q=0F
     private int pawnAdvance = 0x0;
     private int enPassantSquare = 0;
     private int halfMove = 0;
@@ -72,6 +86,7 @@ public class BoardMap implements Cloneable {
         return enemyBoard;
     }
 
+    // TODO: Un-making a castle move may be disastrous.
     public MovementEvent unmake(String move) {
         return forceUpdate(Move.ofInverse(move));
     }
@@ -98,9 +113,9 @@ public class BoardMap implements Cloneable {
         int destPiece = this.getPieceAt(dest);
 
         if(turn == WHITE_TURN) {
-            return handleMove(srcPiece, src, dest, destPiece, enemyBoard, move, true);
+            return handleMove(srcPiece, src, dest, destPiece, move, true);
         } else {
-            return this.enemyBoard.handleMove(srcPiece, src, dest, destPiece, this, move, true);
+            return this.enemyBoard.handleMove(srcPiece, src, dest, destPiece, move, true);
         }
     }
 
@@ -116,18 +131,20 @@ public class BoardMap implements Cloneable {
         int destPiece = this.getPieceAt(dest);
         // Turn checking
         if(Piece.color(srcPiece) != (turn == WHITE_TURN ? WHITE : BLACK)) {
-            InternLogger.getLogger().debug(STR."Piece \{Piece.asString(srcPiece)} is not of color \{Piece.asString(color)}");
+            // InternLogger.getLogger().debug(STR."Piece \{Piece.asString(srcPiece)} is not of color \{Piece.asString(color)}");
             return turn == WHITE_TURN ? MovementEvent.WHITE_TO_PLAY : MovementEvent.BLACK_TO_PLAY;
         }
         // Destination checking; cannot capture pieces of the same color
-        if(Piece.color(srcPiece) == Piece.color(destPiece)) return MovementEvent.CAPTURING_SAME;
+        if(Piece.color(srcPiece) == Piece.color(destPiece)) {
+            if(!Piece.is(srcPiece, KING) || !Piece.is(destPiece, ROOK)) return MovementEvent.CAPTURING_SAME;
+        }
         // Move checking, cannot move from nothing.
         if(srcPiece == NONE) return MovementEvent.ILLEGAL;
 
         if(turn == WHITE_TURN) {
-            return handleMove(srcPiece, src, dest, destPiece, enemyBoard, move, false);
+            return handleMove(srcPiece, src, dest, destPiece, move, false);
         } else {
-            return this.enemyBoard.handleMove(srcPiece, src, dest, destPiece, this, move, false);
+            return this.enemyBoard.handleMove(srcPiece, src, dest, destPiece, move, false);
         }
     }
 
@@ -190,10 +207,10 @@ public class BoardMap implements Cloneable {
             }
         }
         int castleState = 0;
-        if((this.castle & 0x0F) != 0) castleState |= WHITE_CASTLE_KING_SIDE;
-        if((this.castle & 0xF0) != 0) castleState |= WHITE_CASTLE_QUEEN_SIDE;
-        if((enemyBoard.castle & 0x0F) != 0) castleState |= BLACK_CASTLE_KING_SIDE;
-        if((enemyBoard.castle & 0xF0) != 0) castleState |= BLACK_CASTLE_QUEEN_SIDE;
+        if((this.castle & 0xF0) != 0) castleState |= WHITE_CASTLE_KING_SIDE;
+        if((this.castle & 0x0F) != 0) castleState |= WHITE_CASTLE_QUEEN_SIDE;
+        if((enemyBoard.castle & 0xF0) != 0) castleState |= BLACK_CASTLE_KING_SIDE;
+        if((enemyBoard.castle & 0x0F) != 0) castleState |= BLACK_CASTLE_QUEEN_SIDE;
         positions[TURN] = turn;
         positions[CASTLE] = castleState;
         positions[EN_PASSANT] = BoardHelper.getFENPosition(enPassantSquare);
@@ -305,7 +322,7 @@ public class BoardMap implements Cloneable {
             case KNIGHT -> verifyKnight(srcPos, destPos);
             case ROOK -> verifyRook(srcPos, destPos);
             case QUEEN -> verifyQueen(srcPos, destPos);
-            case KING -> verifyKing(srcPos, destPos);
+            case KING -> verifyKing(srcPos, destPos, false);
             default -> throw new IllegalStateException(STR."Unexpected value: \{srcPiece & ~COLOR_MASK}");
         };
         return handlerCode == 0;
@@ -334,10 +351,9 @@ public class BoardMap implements Cloneable {
      * @param srcPos the source position
      * @param destPos the destination position
      * @param destPiece the captured piece
-     * @param enemyMap the enemy BoardMap to update if {@code capturedPiece != null}
      * @param forced whether this move should ignore all validity checks
      */
-    private MovementEvent handleMove(int srcPiece, int srcPos, int destPos, int destPiece, BoardMap enemyMap, Move move, boolean forced) {
+    private MovementEvent handleMove(int srcPiece, int srcPos, int destPos, int destPiece, Move move, boolean forced) {
         InternLogger.getLogger().debug(STR."Source: \{srcPos}, Destination: \{destPos} (Origin: \{srcPos + 1}, \{destPos + 1})");
         InternLogger.getLogger().debug(STR."State: \{BoardHelper.getPositionString(srcPos + 1)}, \{BoardHelper.getPositionString(destPos + 1)}");
         InternLogger.getLogger().debug(STR."Has: \{Piece.asString(srcPiece)}, To: \{Piece.asString(destPiece)}");
@@ -355,10 +371,10 @@ public class BoardMap implements Cloneable {
             case KNIGHT -> verifyKnight(srcPos, destPos);
             case ROOK -> verifyRook(srcPos, destPos);
             case QUEEN -> verifyQueen(srcPos, destPos);
-            case KING -> verifyKing(srcPos, destPos);
+            case KING -> verifyKing(srcPos, destPos, true);
             default -> throw new IllegalStateException(STR."Unexpected value: \{srcPiece & ~COLOR_MASK}");
         };
-
+        boolean castleFlag = handlerCode == 1;
         MovementEvent error = translate(handlerCode);
         // error.code() & 0x07 is not 0
         if(error != null && !forced) return error;
@@ -366,10 +382,22 @@ public class BoardMap implements Cloneable {
         // Anything past this line is not going to be interrupted.
 
         halfMove++;
+        enemyBoard.halfMove++;
 
+        boolean enpFlag = false;
         /* Calculating 50-move rule and en passant */
         if(Piece.is(srcPiece, PAWN)) {
             halfMove = 0;
+            enemyBoard.halfMove = 0;
+
+            if(destPos == enPassantSquare) {
+                if(this.color == WHITE) {
+                    this.enemyBoard.clear(PAWN, 1L << (enPassantSquare + BACKWARD_OFFSET));
+                } else {
+                    this.enemyBoard.clear(PAWN, 1L << (enPassantSquare + FORWARD_OFFSET));
+                }
+                enpFlag = true;
+            }
         }
         /* Castle rights too */
         if(Piece.is(srcPiece, KING)) {
@@ -377,27 +405,42 @@ public class BoardMap implements Cloneable {
         }
 
         /* Castle rights */
+        // moved rook
         if(Piece.is(srcPiece, ROOK)) {
             if(BoardHelper.getFile(srcPos) == 0) {
-                castle &= ~0xF0;
+                castle &= ~0xF0; // king side
             } else {
-                castle &= ~0x0F;
+                castle &= ~0x0F; // queen side
+            }
+        }
+        // captured rook
+        if(Piece.is(destPiece, ROOK) && !castleFlag) {
+            if(BoardHelper.getFile(destPos) == 0) {
+                enemyBoard.castle &= ~0xF0;
+            } else {
+                enemyBoard.castle &= ~0x0F;
             }
         }
 
         // Past this line is when all moves are confirmed to be valid
 
-        clear(srcPiece & ~COLOR_MASK, srcMask);
-        retain(srcPiece & ~COLOR_MASK, destMask);
+        // If we castled, it has already been handled internally via doCastle
+        if(!castleFlag) {
+            clear(srcPiece & ~COLOR_MASK, srcMask);
+            retain(srcPiece & ~COLOR_MASK, destMask);
+        }
 
         if(turn == BLACK_TURN) {
             fullMove++;
             enemyBoard.fullMove++;
         }
 
-        if(destPiece != NONE) {
+        // has a piece at destination, and en passant is not in place,
+        // handle here.
+        // en passant captures are handled earlier.
+        if(destPiece != NONE && !enpFlag) {
             halfMove = 0;
-            enemyMap.clear(destPiece & ~COLOR_MASK, destMask);
+            enemyBoard.clear(destPiece & ~COLOR_MASK, destMask);
         }
 
         turn ^= COLOR_MASK;
@@ -420,21 +463,21 @@ public class BoardMap implements Cloneable {
         int file = BoardHelper.getFile(srcPos);
         int destFile = BoardHelper.getFile(destPos);
         if (Math.abs(file - destFile) > 1) {
-            InternLogger.getLogger().debug(STR."Distance too far horizontally: From \{file} to \{destFile}");
+            // InternLogger.getLogger().debug(STR."Distance too far horizontally: From \{file} to \{destFile}");
             return MovementEvent.ILLEGAL.code();
         }
         if ((Math.abs(file - destFile) == 1 && destPiece == NONE) || (file - destFile == 0 && destPiece != NONE)) {
-            InternLogger.getLogger().debug("Captures nothing");
-            return MovementEvent.ILLEGAL.code();
+            // InternLogger.getLogger().debug("Captures nothing");
+            if(destPos != enPassantSquare) return MovementEvent.ILLEGAL.code();
         }
 
         if(Math.abs(BoardHelper.getRank(srcPos) - BoardHelper.getRank(destPos)) == 2) {
             if((pawnAdvance & getByteMask(file)) == 0) {
-                InternLogger.getLogger().debug("Pawn advance does not match with byte mask");
+                // InternLogger.getLogger().debug("Pawn advance does not match with byte mask");
                 return MovementEvent.ILLEGAL.code();
             }
             if(this.getPieceAt(srcPos + (this.turn == WHITE_TURN ? FORWARD_OFFSET : -FORWARD_OFFSET)) != NONE) {
-                InternLogger.getLogger().debug("Pawn advances into something");
+                // InternLogger.getLogger().debug("Pawn advances into something");
                 return MovementEvent.ILLEGAL.code();
             }
             // We add one here to restore it back onto its actual represented location
@@ -522,7 +565,16 @@ public class BoardMap implements Cloneable {
     }
 
     private static final int[] VALID_OFFSETS = {1, -1, 7, -7, 9, -9, 8, -8};
-    private int verifyKing(int srcPos, int destPos) {
+    @Special
+    private int verifyKing(int srcPos, int destPos, boolean shouldCastle) {
+        if(this.getSelfPieceAt(destPos, false) == (color | ROOK)) {
+            int kq = BoardHelper.getFile(destPos) == 7 ? CASTLE_K_MASK : CASTLE_Q_MASK;
+            if(!doCastle(kq, shouldCastle)) {
+                return MovementEvent.ILLEGAL.code();
+            } else {
+                return 1;
+            }
+        }
         if(this.checkMethod.useBits()) {
             for(int i : VALID_OFFSETS) {
                 if(srcPos - destPos == i) {
@@ -540,6 +592,66 @@ public class BoardMap implements Cloneable {
         if(Math.abs(rank - destRank) > 1) return MovementEvent.ILLEGAL.code();
         if(((1L << destPos) & ~this.getAttackMask(enemyBoard.color)) == 0) return MovementEvent.REVEALS_CHECK.code();
         return 0;
+    }
+
+    // 0xF0=King, 0x0F=Queen
+    @MaskType(Mask.CLEAR)
+    private static final long WHITE_CASTLE_K_BLOCKER_MASK = 0b01100000;
+    private static final long WHITE_CASTLE_K_ATTACKER_MASK = 0b01100000;
+    private static final long WHITE_CASTLE_Q_BLOCKER_MASK = 0b00001110;
+    private static final long WHITE_CASTLE_Q_ATTACKER_MASK = 0b00001100;
+
+    @MaskType(Mask.CLEAR)
+    private static final long K_PRESERVE_MASK = 0b10000000;
+    private static final long Q_PRESERVE_MASK = 0b00000001;
+    private static final long BLACK_K_PRESERVE_MASK = K_PRESERVE_MASK << 56;
+    private static final long BLACK_Q_PRESERVE_MASK = Q_PRESERVE_MASK << 56;
+
+    @MaskType(Mask.CLEAR)
+    private static final long BLACK_CASTLE_K_ATTACKER_MASK = WHITE_CASTLE_K_ATTACKER_MASK << 56;
+    private static final long BLACK_CASTLE_K_BLOCKER_MASK = WHITE_CASTLE_K_BLOCKER_MASK << 56;
+    private static final long BLACK_CASTLE_Q_ATTACKER_MASK = WHITE_CASTLE_Q_ATTACKER_MASK << 56;
+    private static final long BLACK_CASTLE_Q_BLOCKER_MASK = WHITE_CASTLE_Q_BLOCKER_MASK << 56;
+    @Special // Probably also the most bloated one
+    private boolean doCastle(int side, boolean shouldAttempt) {
+        if((this.castle & side) == 0) return false;
+        if(this.color == WHITE) {
+            long enemyAttackMask = this.getAttackMask(BLACK);
+            if(side == CASTLE_K_MASK) {
+                if((WHITE_CASTLE_K_ATTACKER_MASK & ~enemyAttackMask) == 0 || this.inCheck()) return false; // bit cleared; square was attacked (or in check)
+                if((WHITE_CASTLE_K_BLOCKER_MASK & this.getBlockers()) != 0) return false; // has blockers
+                if(!shouldAttempt) return true;
+                this.king = this.king << 2;
+                this.clear(ROOK, K_PRESERVE_MASK);
+                this.retain(ROOK, this.king >> 1);
+            } else {
+                if((WHITE_CASTLE_Q_ATTACKER_MASK & ~enemyAttackMask) == 0 || this.inCheck()) return false; // bit cleared; square was attacked (or in check)
+                if((WHITE_CASTLE_Q_BLOCKER_MASK & this.getBlockers()) != 0) return false; // has blockers
+                if(!shouldAttempt) return true;
+                this.king = this.king >> 2;
+                this.clear(ROOK, Q_PRESERVE_MASK);
+                this.retain(ROOK, this.king << 1);
+            }
+        } else {
+            long enemyAttackMask = this.getAttackMask(WHITE);
+            if(side == CASTLE_K_MASK) {
+                if((BLACK_CASTLE_K_ATTACKER_MASK & ~enemyAttackMask) == 0 || this.inCheck()) return false; // bit cleared; square was attacked (or in check)
+                if((BLACK_CASTLE_K_BLOCKER_MASK & this.getBlockers()) != 0) return false; // has blockers
+                if(!shouldAttempt) return true;
+                this.king = this.king << 2;
+                this.clear(ROOK, BLACK_K_PRESERVE_MASK);
+                this.retain(ROOK, this.king >> 1);
+            } else {
+                if((BLACK_CASTLE_Q_ATTACKER_MASK & ~enemyAttackMask) == 0 || this.inCheck()) return false; // bit cleared; square was attacked (or in check)
+                if((BLACK_CASTLE_Q_BLOCKER_MASK & this.getBlockers()) != 0) return false; // has blockers
+                if(!shouldAttempt) return true;
+                this.king = this.king >> 2;
+                this.clear(ROOK, BLACK_Q_PRESERVE_MASK);
+                this.retain(ROOK, this.king << 1);
+            }
+        }
+        this.castle = 0; // castled
+        return true;
     }
 
     /**
@@ -738,5 +850,16 @@ public class BoardMap implements Cloneable {
         public boolean manual() {
             return this == MANUAL;
         }
+    }
+
+    /**
+     * Indicates that this method is impure or that it behaves
+     * differently than other methods.
+     * The call hierarchy should
+     * contain this annotation all the way up to the caller.
+     */
+    @Target(ElementType.METHOD)
+    @Retention(RetentionPolicy.SOURCE)
+    private @interface Special {
     }
 }

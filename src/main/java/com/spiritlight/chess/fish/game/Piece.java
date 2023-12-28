@@ -158,6 +158,20 @@ public class Piece {
         return tl + tr + bl + br;
     }
 
+    public static int fromCharacter(char chr) {
+        int color = Character.isUpperCase(chr) ? WHITE : BLACK;
+        int value = switch (Character.toUpperCase(chr)) {
+            case 'P' -> PAWN;
+            case 'N' -> KNIGHT;
+            case 'B' -> BISHOP;
+            case 'R' -> ROOK;
+            case 'Q' -> QUEEN;
+            case 'K' -> KING;
+            default -> throw new IllegalStateException(STR."Unexpected value: \{Character.toUpperCase(chr)}");
+        };
+        return color | value;
+    }
+
     /**
      *
      * @param piece piece type

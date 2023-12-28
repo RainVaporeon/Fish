@@ -83,8 +83,34 @@ public class Test {
         timer.fence("map.eval");
         testMapEvaluation();
         timer.record("map.eval");
+        timer.fence("map.castles");
+        testCastle();
+        timer.record("map.castles");
         System.out.println(timer.getRecordString());
         System.out.println("All test case passed! Congratulations!");
+    }
+
+    private static void testCastle() {
+        BoardMap map = BoardMap.fromFENString("r3k2r/pppppppp/8/8/8/8/PPPPPPPP/R3K2R w KQkq - 0 1");
+        Move kingCastle = Move.of("e1,h1");
+        map.update(kingCastle);
+        assertEquals(map.toFENString(), "r3k2r/pppppppp/8/8/8/8/PPPPPPPP/R4RK1 b kq - 1 1", "Kingside castle incorrect");
+
+        BoardMap mapq = BoardMap.fromFENString("r3k2r/pppppppp/8/8/8/8/PPPPPPPP/R3K2R w KQkq - 0 1");
+        Move queenCastle = Move.of("e1,a1");
+        mapq.update(queenCastle);
+        assertEquals(mapq.toFENString(), "r3k2r/pppppppp/8/8/8/8/PPPPPPPP/2KR3R b kq - 1 1", "Queenside castle incorrect");
+
+        BoardMap mapbk = BoardMap.fromFENString("r3k2r/pppppppp/8/8/8/8/PPPPPPPP/R3K2R b KQkq - 0 1");
+        Move bkCastle = Move.of("e8,h8");
+        mapbk.update(bkCastle);
+        assertEquals(mapbk.toFENString(), "r4rk1/pppppppp/8/8/8/8/PPPPPPPP/R3K2R w KQ - 1 2", "BKingside castle incorrect");
+
+        BoardMap mapbq = BoardMap.fromFENString("r3k2r/pppppppp/8/8/8/8/PPPPPPPP/R3K2R b KQkq - 0 1");
+        Move bqCastle = Move.of("e8,a8");
+        mapbq.update(bqCastle);
+        assertEquals(mapbq.toFENString(), "2kr3r/pppppppp/8/8/8/8/PPPPPPPP/R3K2R w KQ - 1 2", "BQueenside castle incorrect");
+
     }
 
     private static void testMapEvaluation() {
@@ -104,7 +130,8 @@ public class Test {
     }
 
     private static void testTest() {
-        assertTrue(() -> Arrays.stream(new int[1024]).boxed().toList().stream().allMatch(i -> i == 0), "not all 0");
+        BoardMap board = BoardMap.initialize();
+        System.out.println(board.flatBoardView());
     }
 
     private static void testAttackMoveGetAll() {
@@ -207,7 +234,7 @@ public class Test {
         System.out.println(board.boardView());
         System.out.println(board.flatBoardView());
         System.out.println(board.toFENString());
-        assertFalse(event::illegal, STR."Illegal movement for legal move: for move \{move}");
+        assertFalse(event::illegal, STR."Illegal movement for legal move: for move \{move}: \{event.toString()}");
         assertEquals(event.capturedPiece(), NONE, STR."Unexpected capture: \{event.capturedPiece()}");
         assertEquals(event.capturingPiece(), WHITE | PAWN, STR."Unexpected source: \{event.capturingPiece()}");
         assertEquals(board.toFENString(), "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1", "Unexpected FEN");
