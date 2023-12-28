@@ -50,9 +50,9 @@ public class Test {
         timer.fence("boardmap.initialize");
         testBoard();
         timer.record("boardmap.initialize");
-        timer.fence("boardmap.play");
+        timer.fence("boardmap.move");
         testBoardMove();
-        timer.record("boardmap.play");
+        timer.record("boardmap.move");
         timer.fence("bitboard.load");
         testBitboardLoad();
         timer.record("bitboard.load");
