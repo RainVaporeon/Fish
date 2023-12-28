@@ -15,10 +15,7 @@ import com.spiritlight.fishutils.internal.UtilityAccess;
 import com.spiritlight.fishutils.internal.accessor.StableFieldAccess;
 import com.spiritlight.fishutils.misc.annotations.Modifies;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import java.lang.annotation.*;
 import java.util.Arrays;
 import java.util.Iterator;
 
@@ -465,6 +462,7 @@ public class BoardMap implements Cloneable {
             // We add one here to restore it back onto its actual represented location
             info.enPassantSquare = srcPos + (info.turn == WHITE_TURN ? FORWARD_OFFSET : -FORWARD_OFFSET);
         }
+        // TODO: What if a doubled pawn moves on this file?
         pawnAdvance &= ~getByteMask(file);
         return 0;
     }
@@ -845,6 +843,7 @@ public class BoardMap implements Cloneable {
      */
     @Target(ElementType.METHOD)
     @Retention(RetentionPolicy.SOURCE)
+    @Documented
     private @interface Special {
     }
 }
