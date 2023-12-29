@@ -296,6 +296,13 @@ public class BoardMap implements Cloneable {
     }
 
     public boolean canMove(int srcPos, int destPos) {
+        return canMove(srcPos, destPos, false);
+    }
+
+    public boolean canMove(int srcPos, int destPos, boolean respectColor) {
+        if(respectColor) {
+            if(Piece.color(this.getPieceAt(srcPos)) != (this.info.turn == WHITE_TURN ? WHITE : BLACK)) return false;
+        }
         int srcPiece = this.getPieceAt(srcPos);
         int destPiece = this.getPieceAt(destPos);
         if(Piece.color(srcPiece) == Piece.color(destPiece)) return false;
