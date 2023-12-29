@@ -141,9 +141,10 @@ public class BoardMap implements Cloneable {
 
     public Pair<GameState, EndType> getGameState() {
         if(info.fullMove >= 50) return Pair.of(GameState.GAME_END, EndType.DRAW_50_MOVE);
-        boolean stalemate = this.isStalemate();
-        if(stalemate) {
-            if(this.inCheck()) return Pair.of(GameState.GAME_END, this.color == WHITE ? EndType.BLACK_WIN_CHECKMATE : EndType.WHITE_WIN_CHECKMATE);
+        if(this.isCheckmate()) {
+            return Pair.of(GameState.GAME_END, this.color == WHITE ? EndType.BLACK_WIN_CHECKMATE : EndType.WHITE_WIN_CHECKMATE);
+        }
+        if(this.isStalemate()) {
             return Pair.of(GameState.GAME_END, EndType.DRAW_STALEMATE);
         }
         GameState state;
@@ -459,23 +460,17 @@ public class BoardMap implements Cloneable {
         return new MovementEvent(srcPiece, destPiece, move);
     }
 
-    private boolean revealsCheck(int location, long sourceMask) {
-        int piece = this.getPieceAt(location);
-        if(Piece.color(piece) != color) return enemyBoard.clearCheck(piece, sourceMask);
-        return this.clearCheck(piece, sourceMask);
-    }
-
-    private boolean clearCheck(int piece, long mask) {
+    private boolean revealsCheck(int piece, long sourceMask) {
         try {
-            this.clear(piece & ~COLOR_MASK, mask);
+            this.clear(piece, sourceMask);
             return this.inCheck();
         } finally {
-            this.retain(piece & ~COLOR_MASK, mask);
+            this.retain(piece, sourceMask);
         }
     }
 
     public boolean isCheckmate() {
-        return this.isStalemate() && this.inCheck();
+        return this.king == 0 || (this.isStalemate() && this.inCheck());
     }
 
     public boolean isStalemate() {
@@ -500,8 +495,13 @@ public class BoardMap implements Cloneable {
     private int verifyPawn(int srcPos, int destPos, int destPiece, boolean verify) {
         int file = BoardHelper.getFile(srcPos);
         int destFile = BoardHelper.getFile(destPos);
-        if (Math.abs(file - destFile) > 1) {
-            // InternLogger.getLogger().debug(STR."Distance too far horizontally: From \{file} to \{destFile}");
+        // The minimum tile a pawn can move is 7 (Forward + left/right offset)
+        if (Math.abs(file - destFile) > 1 || Math.abs(srcPos - destPos) < 7) {
+            // InternLogger.getLogger().debug(STR."Distance too far horizontally: From \{file} to \{destFile} / Unexpected distance");
+            return MovementEvent.ILLEGAL.code();
+        }
+        if (srcPos - destPos == (color == WHITE ? -8 : 8)) {
+            // backwards check
             return MovementEvent.ILLEGAL.code();
         }
         if (Math.abs(srcPos - destPos) > 16) {
@@ -515,8 +515,8 @@ public class BoardMap implements Cloneable {
 
         if(Math.abs(srcPos - destPos) == 16) {
             if((pawnAdvance & getByteMask(file)) == 0) {
-                // InternLogger.getLogger().debug("Pawn advance does not match with byte mask");
-                if(BoardHelper.getRank(srcPos) != (this.color == WHITE ? 1 : 6)) {
+                // InternLogger.getLogger().debug("Pawn advance does not match with byte mask / Tries to capture illegally");
+                if(BoardHelper.getRank(srcPos) != (this.color == WHITE ? 1 : 6) || file != destFile) {
                     return MovementEvent.ILLEGAL.code();
                 }
             }
@@ -743,7 +743,7 @@ public class BoardMap implements Cloneable {
             case ROOK -> rook &= ~mask;
             case QUEEN -> queen &= ~mask;
             case KING -> king &= ~mask;
-            default -> throw new SystemError(String.format("unexpected clear call with piece type %d (%s), mask: %s", srcPiece, Piece.asString(srcPiece), Long.toBinaryString(mask)));
+            default -> {} // throw new SystemError(String.format("unexpected clear call with piece type %d (%s), mask: %s", srcPiece, Long.toBinaryString(mask)));
         }
     }
 
@@ -761,7 +761,7 @@ public class BoardMap implements Cloneable {
             case ROOK -> rook |= mask;
             case QUEEN -> queen |= mask;
             case KING -> king |= mask;
-            default -> throw new SystemError(String.format("unexpected clear call with piece type %d (%s), mask: %s", srcPiece, Piece.asString(srcPiece), Long.toBinaryString(mask)));
+            default -> {} // throw new SystemError(String.format("unexpected retain call with piece type %d, mask: %s", srcPiece, Long.toBinaryString(mask)));
         }
     }
 
