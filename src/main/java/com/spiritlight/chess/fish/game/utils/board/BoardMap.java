@@ -300,7 +300,7 @@ public class BoardMap implements Cloneable {
         int destPiece = this.getPieceAt(destPos);
         if(Piece.color(srcPiece) == Piece.color(destPiece)) return false;
         int handlerCode = switch (srcPiece & ~COLOR_MASK) {
-            case PAWN -> verifyPawn(srcPos, destPos, destPiece);
+            case PAWN -> verifyPawn(srcPos, destPos, destPiece, true);
             case BISHOP -> verifyBishop(srcPos, destPos);
             case KNIGHT -> verifyKnight(srcPos, destPos);
             case ROOK -> verifyRook(srcPos, destPos);
@@ -317,6 +317,10 @@ public class BoardMap implements Cloneable {
         current.enemyBoard = enemy;
         enemy.enemyBoard = current;
         return current;
+    }
+
+    public int getTurn() {
+        return info.turn;
     }
 
     @Override
@@ -349,7 +353,7 @@ public class BoardMap implements Cloneable {
         * checked it before masks were even retrieved.       */
 
         int handlerCode = switch (srcPiece & ~COLOR_MASK) {
-            case PAWN -> verifyPawn(srcPos, destPos, destPiece);
+            case PAWN -> verifyPawn(srcPos, destPos, destPiece, false);
             case BISHOP -> verifyBishop(srcPos, destPos);
             case KNIGHT -> verifyKnight(srcPos, destPos);
             case ROOK -> verifyRook(srcPos, destPos);
@@ -438,32 +442,39 @@ public class BoardMap implements Cloneable {
     // 0. Leaving it as is though.
 
     @Modifies({"info.enPassantSquare", "pawnAdvance"})
-    private int verifyPawn(int srcPos, int destPos, int destPiece) {
+    private int verifyPawn(int srcPos, int destPos, int destPiece, boolean verify) {
         int file = BoardHelper.getFile(srcPos);
         int destFile = BoardHelper.getFile(destPos);
         if (Math.abs(file - destFile) > 1) {
             // InternLogger.getLogger().debug(STR."Distance too far horizontally: From \{file} to \{destFile}");
             return MovementEvent.ILLEGAL.code();
         }
-        if ((Math.abs(file - destFile) == 1 && destPiece == NONE) || (file - destFile == 0 && destPiece != NONE)) {
-            // InternLogger.getLogger().debug("Captures nothing");
+        if (Math.abs(srcPos - destPos) > 16) {
+            // Moves way too far forward
+            return MovementEvent.ILLEGAL.code();
+        }
+        if ((Math.abs(file - destFile) == 1 && destPiece == NONE) || (file == destFile && destPiece != NONE)) {
+            // InternLogger.getLogger().debug("Captures nothing / Advances into something");
             if(destPos != info.enPassantSquare) return MovementEvent.ILLEGAL.code();
         }
 
-        if(Math.abs(BoardHelper.getRank(srcPos) - BoardHelper.getRank(destPos)) == 2) {
+        if(Math.abs(srcPos - destPos) == 16) {
             if((pawnAdvance & getByteMask(file)) == 0) {
                 // InternLogger.getLogger().debug("Pawn advance does not match with byte mask");
                 return MovementEvent.ILLEGAL.code();
             }
             if(this.getPieceAt(srcPos + (info.turn == WHITE_TURN ? FORWARD_OFFSET : -FORWARD_OFFSET)) != NONE) {
-                // InternLogger.getLogger().debug("Pawn advances into something");
+                // InternLogger.getLogger().debug("Pawn advances past something");
                 return MovementEvent.ILLEGAL.code();
             }
-            // We add one here to restore it back onto its actual represented location
-            info.enPassantSquare = srcPos + (info.turn == WHITE_TURN ? FORWARD_OFFSET : -FORWARD_OFFSET);
+            if(!verify) {
+                info.enPassantSquare = srcPos + (info.turn == WHITE_TURN ? FORWARD_OFFSET : -FORWARD_OFFSET);
+            }
         }
-        // TODO: What if a doubled pawn moves on this file?
-        pawnAdvance &= ~getByteMask(file);
+        if(!verify) {
+            // TODO: What if a doubled pawn moves on this file?
+            pawnAdvance &= ~getByteMask(file);
+        }
         return 0;
     }
 

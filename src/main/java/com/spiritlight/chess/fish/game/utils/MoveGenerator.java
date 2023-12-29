@@ -11,6 +11,7 @@ import com.spiritlight.fishutils.misc.arrays.ReferenceArray;
 import com.spiritlight.fishutils.misc.arrays.primitive.LongArray;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -50,6 +51,7 @@ public class MoveGenerator {
     public List<Move> getValidMovesFor(int index) {
         int piece = bitboard.getPieceAt(index);
         if(Piece.is(piece, PAWN)) return processPawn(index);
+        if(Piece.is(piece, NONE)) return Collections.emptyList();
         int[] possibleDestinations = Bits.bitList(AttackTable.getDirect(piece & PIECE_MASK, index));
         List<Move> moves = new LinkedList<>();
         for(int move : possibleDestinations) {

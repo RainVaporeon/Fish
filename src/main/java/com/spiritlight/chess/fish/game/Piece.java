@@ -34,6 +34,7 @@ public class Piece {
      * @return true if the piece is of the type, false otherwise
      */
     public static boolean is(int piece, int type) {
+        if(type == NONE) return piece == 0 || (piece & PIECE_MASK) == 0;
         return (piece & type) != 0;
     }
 
