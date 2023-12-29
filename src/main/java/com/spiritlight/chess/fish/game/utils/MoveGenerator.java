@@ -7,13 +7,11 @@ import com.spiritlight.chess.fish.game.utils.board.BoardMap;
 import com.spiritlight.chess.fish.game.utils.game.Move;
 import com.spiritlight.chess.fish.internal.InternLogger;
 import com.spiritlight.chess.fish.internal.utils.Bits;
+import com.spiritlight.fishutils.collections.IntList;
 import com.spiritlight.fishutils.misc.arrays.ReferenceArray;
 import com.spiritlight.fishutils.misc.arrays.primitive.LongArray;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 import static com.spiritlight.chess.fish.game.Piece.*;
 
@@ -49,15 +47,27 @@ public class MoveGenerator {
     }
 
     public List<Move> getValidMovesFor(int index) {
-        int piece = bitboard.getPieceAt(index);
-        if(Piece.is(piece, PAWN)) return processPawn(index);
-        if(Piece.is(piece, NONE)) return Collections.emptyList();
-        int[] possibleDestinations = Bits.bitList(AttackTable.getDirect(piece & PIECE_MASK, index));
-        List<Move> moves = new LinkedList<>();
-        for(int move : possibleDestinations) {
-            if(bitboard.canMove(index, move)) moves.add(Move.of(index, move));
+        return getValidMovesFor(index, true);
+    }
+
+    public List<Move> getValidMovesFor(int index, boolean bits) {
+        if(bits) {
+            int piece = bitboard.getPieceAt(index);
+            if(Piece.is(piece, PAWN)) return processPawn(index);
+            if(Piece.is(piece, NONE)) return Collections.emptyList();
+            int[] possibleDestinations = Bits.bitList(AttackTable.getDirect(piece & PIECE_MASK, index));
+            List<Move> moves = new LinkedList<>();
+            for(int move : possibleDestinations) {
+                if(bitboard.canMove(index, move)) moves.add(Move.of(index, move));
+            }
+            return moves;
         }
-        return moves;
+
+        IntList list = new IntList(8);
+        for(int i = 0; i < 64; i++) {
+            if((bitboard.getColor() == WHITE ? bitboard : bitboard.getEnemyBoard()).canMove(index, i, true)) list.add(i);
+        }
+        return list.stream().map(path -> Move.of(index, path)).toList();
     }
 
     private List<Move> processPawn(int index) {

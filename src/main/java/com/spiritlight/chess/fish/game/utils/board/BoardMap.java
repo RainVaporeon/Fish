@@ -4,6 +4,7 @@ import com.spiritlight.chess.fish.game.FEN;
 import com.spiritlight.chess.fish.game.Piece;
 import com.spiritlight.chess.fish.game.utils.EndType;
 import com.spiritlight.chess.fish.game.utils.GameState;
+import com.spiritlight.chess.fish.game.utils.MoveGenerator;
 import com.spiritlight.chess.fish.game.utils.game.Move;
 import com.spiritlight.chess.fish.game.utils.game.MovementEvent;
 import com.spiritlight.chess.fish.internal.InternLogger;
@@ -18,6 +19,8 @@ import com.spiritlight.fishutils.misc.annotations.Modifies;
 import java.lang.annotation.*;
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
 
 import static com.spiritlight.chess.fish.game.FEN.*;
 import static com.spiritlight.chess.fish.game.Piece.*;
@@ -138,8 +141,18 @@ public class BoardMap implements Cloneable {
 
     public Pair<GameState, EndType> getGameState() {
         if(info.fullMove >= 50) return Pair.of(GameState.GAME_END, EndType.DRAW_50_MOVE);
-        // TODO: Either rework or change this
-        throw new UnsupportedOperationException("not implemented");
+        boolean stalemate = this.isStalemate();
+        if(stalemate) {
+            if(this.inCheck()) return Pair.of(GameState.GAME_END, this.color == WHITE ? EndType.BLACK_WIN_CHECKMATE : EndType.WHITE_WIN_CHECKMATE);
+            return Pair.of(GameState.GAME_END, EndType.DRAW_STALEMATE);
+        }
+        GameState state;
+        if(this.info.fullMove <= 10) {
+            state = GameState.EARLY_GAME;
+        } else {
+            state = this.queen == 0 && enemyBoard.queen == 0 ? GameState.END_GAME : GameState.MIDDLE_GAME;
+        }
+        return Pair.of(state, EndType.IN_PROGRESS);
     }
 
     public int getPieceAt(int src) {
@@ -315,6 +328,8 @@ public class BoardMap implements Cloneable {
             case KING -> verifyKing(srcPos, destPos, false);
             default -> throw new IllegalStateException(STR."Unexpected value: \{srcPiece & ~COLOR_MASK}");
         };
+        long srcMask = getMask(srcPos);
+        if(this.revealsCheck(srcPiece, srcMask)) return false;
         return handlerCode == 0;
     }
 
@@ -372,6 +387,8 @@ public class BoardMap implements Cloneable {
         MovementEvent error = translate(handlerCode);
         // error.code() & 0x07 is not 0
         if(error != null && !forced) return error;
+
+        if(this.revealsCheck(srcPiece, srcMask)) return MovementEvent.ILLEGAL;
 
         // Anything past this line is not going to be interrupted.
 
@@ -437,6 +454,28 @@ public class BoardMap implements Cloneable {
         info.turn ^= TURN_MASK;
 
         return new MovementEvent(srcPiece, destPiece, move);
+    }
+
+    private boolean revealsCheck(int piece, long sourceMask) {
+        try {
+            this.clear(piece, sourceMask);
+            return this.inCheck();
+        } finally {
+            this.retain(piece, sourceMask);
+        }
+    }
+
+    public boolean isCheckmate() {
+        return this.isStalemate() && this.inCheck();
+    }
+
+    public boolean isStalemate() {
+        List<Move> moves = new LinkedList<>();
+        MoveGenerator gen = MoveGenerator.create(this);
+        for(int i = 0; i < 64; i++) {
+            moves.addAll(gen.getValidMovesFor(i));
+        }
+        return moves.isEmpty();
     }
 
     // Section to verify the validity of a movement.
