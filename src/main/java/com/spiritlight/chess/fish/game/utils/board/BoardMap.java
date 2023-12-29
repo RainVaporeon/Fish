@@ -313,11 +313,14 @@ public class BoardMap implements Cloneable {
     }
 
     public boolean canMove(int srcPos, int destPos, boolean respectColor) {
-        if(respectColor) {
-            if(Piece.color(this.getPieceAt(srcPos)) != (this.info.turn == WHITE_TURN ? WHITE : BLACK)) return false;
-        }
         int srcPiece = this.getPieceAt(srcPos);
         int destPiece = this.getPieceAt(destPos);
+
+        if(respectColor) {
+            if(Piece.color(this.getPieceAt(srcPos)) != (this.info.turn == WHITE_TURN ? WHITE : BLACK)) return false;
+            if(Piece.is(srcPiece, NONE)) return false;
+        }
+
         if(Piece.color(srcPiece) == Piece.color(destPiece)) return false;
         int handlerCode = switch (srcPiece & ~COLOR_MASK) {
             case PAWN -> verifyPawn(srcPos, destPos, destPiece, true);
@@ -456,12 +459,18 @@ public class BoardMap implements Cloneable {
         return new MovementEvent(srcPiece, destPiece, move);
     }
 
-    private boolean revealsCheck(int piece, long sourceMask) {
+    private boolean revealsCheck(int location, long sourceMask) {
+        int piece = this.getPieceAt(location);
+        if(Piece.color(piece) != color) return enemyBoard.clearCheck(piece, sourceMask);
+        return this.clearCheck(piece, sourceMask);
+    }
+
+    private boolean clearCheck(int piece, long mask) {
         try {
-            this.clear(piece, sourceMask);
+            this.clear(piece & ~COLOR_MASK, mask);
             return this.inCheck();
         } finally {
-            this.retain(piece, sourceMask);
+            this.retain(piece & ~COLOR_MASK, mask);
         }
     }
 
@@ -734,7 +743,7 @@ public class BoardMap implements Cloneable {
             case ROOK -> rook &= ~mask;
             case QUEEN -> queen &= ~mask;
             case KING -> king &= ~mask;
-            default -> throw new SystemError(String.format("unexpected clear call with piece type %d, mask: %s", srcPiece, Long.toBinaryString(mask)));
+            default -> throw new SystemError(String.format("unexpected clear call with piece type %d (%s), mask: %s", srcPiece, Piece.asString(srcPiece), Long.toBinaryString(mask)));
         }
     }
 
@@ -752,7 +761,7 @@ public class BoardMap implements Cloneable {
             case ROOK -> rook |= mask;
             case QUEEN -> queen |= mask;
             case KING -> king |= mask;
-            default -> throw new SystemError(String.format("unexpected retain call with piece type %d, mask: %s", srcPiece, Long.toBinaryString(mask)));
+            default -> throw new SystemError(String.format("unexpected clear call with piece type %d (%s), mask: %s", srcPiece, Piece.asString(srcPiece), Long.toBinaryString(mask)));
         }
     }
 
