@@ -334,7 +334,7 @@ public class BoardMap implements Cloneable {
         };
         long srcMask = getMask(srcPos);
         if(this.revealsCheck(srcPiece, srcMask)) return false;
-        return handlerCode == 0;
+        return (handlerCode & ~PIECE_MASK) == 0;
     }
 
     public BoardMap fork() {
