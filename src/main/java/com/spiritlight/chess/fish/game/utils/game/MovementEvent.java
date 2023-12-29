@@ -25,15 +25,16 @@ public class MovementEvent {
      * or the move is not possible to be reached.
      */
     public static final MovementEvent ILLEGAL = createError(0xFFFFFFFF, "Illegal move");
+    // Modification of error code: Now it's negative, allowing easier detection for invalid moves.
     /**
      * Move that lands on something that has the same color as the
      * source piece
      */
-    public static final MovementEvent CAPTURING_SAME = createError(0x10000001, "Capturing same color piece");
+    public static final MovementEvent CAPTURING_SAME = createError(0x80000001, "Capturing same color piece");
     /**
      * Move that will expose a check to the piece's color's king
      */
-    public static final MovementEvent REVEALS_CHECK = createError(0x10000002, "Move reveals a check on king");
+    public static final MovementEvent REVEALS_CHECK = createError(0x80000002, "Move reveals a check on king");
     /**
      * It's white to play, but a black piece was moved
      */

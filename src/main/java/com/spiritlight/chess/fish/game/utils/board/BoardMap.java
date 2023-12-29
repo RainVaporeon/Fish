@@ -468,7 +468,9 @@ public class BoardMap implements Cloneable {
         if(Math.abs(srcPos - destPos) == 16) {
             if((pawnAdvance & getByteMask(file)) == 0) {
                 // InternLogger.getLogger().debug("Pawn advance does not match with byte mask");
-                return MovementEvent.ILLEGAL.code();
+                if(BoardHelper.getRank(srcPos) != (this.color == WHITE ? 1 : 6)) {
+                    return MovementEvent.ILLEGAL.code();
+                }
             }
             if(this.getPieceAt(srcPos + (info.turn == WHITE_TURN ? FORWARD_OFFSET : -FORWARD_OFFSET)) != NONE) {
                 // InternLogger.getLogger().debug("Pawn advances past something");
@@ -479,8 +481,10 @@ public class BoardMap implements Cloneable {
             }
         }
         if(!verify) {
-            // TODO: What if a doubled pawn moves on this file?
-            pawnAdvance &= ~getByteMask(file);
+            // A patch for when a pawn changes file on its next move
+            if(BoardHelper.getRank(srcPos) == (this.color == WHITE ? 1 : 6)) {
+                pawnAdvance &= ~getByteMask(file);
+            }
         }
         return 0;
     }
@@ -559,7 +563,7 @@ public class BoardMap implements Cloneable {
     }
 
     private int verifyQueen(int srcPos, int destPos) {
-        return Math.min(verifyBishop(srcPos, destPos), verifyRook(srcPos, destPos));
+        return Math.max(verifyBishop(srcPos, destPos), verifyRook(srcPos, destPos));
     }
 
     private static final int[] VALID_OFFSETS = {1, -1, 7, -7, 9, -9, 8, -8};
