@@ -12,8 +12,6 @@ import com.spiritlight.chess.fish.internal.annotation.Mask;
 import com.spiritlight.chess.fish.internal.annotation.MaskType;
 import com.spiritlight.chess.fish.internal.exceptions.SystemError;
 import com.spiritlight.fishutils.collections.Pair;
-import com.spiritlight.fishutils.internal.UtilityAccess;
-import com.spiritlight.fishutils.internal.accessor.StableFieldAccess;
 import com.spiritlight.fishutils.misc.annotations.Modifies;
 
 import java.lang.annotation.*;
@@ -28,6 +26,10 @@ import static com.spiritlight.chess.fish.game.utils.GameConstants.*;
 import static com.spiritlight.chess.fish.game.utils.game.Move.BACKWARD_OFFSET;
 import static com.spiritlight.chess.fish.game.utils.game.Move.FORWARD_OFFSET;
 
+// TODO: Separate en passant masks again, may need to modify FEN
+// TODO: or not allow piece to capture same type on en passant
+
+// TODO: Add castling to King moves.
 public class BoardMap implements Cloneable {
     private static final long PAWN_MASK   = 0xFF00;
     private static final long BISHOP_MASK = 0b00100100;
