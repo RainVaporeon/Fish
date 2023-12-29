@@ -34,6 +34,6 @@ public class GameConstants {
     public static final int WHITE_TURN = 0b00000000;
     @FENConstant
     public static final int BLACK_TURN = 0b00000001;
-    @FENConstant
+    @FENConstant // 0 and 1 only
     public static final int TURN_MASK = 0b00000001;
 }
