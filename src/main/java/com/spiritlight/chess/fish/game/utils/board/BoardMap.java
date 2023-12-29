@@ -500,7 +500,7 @@ public class BoardMap implements Cloneable {
             // InternLogger.getLogger().debug(STR."Distance too far horizontally: From \{file} to \{destFile} / Unexpected distance");
             return MovementEvent.ILLEGAL.code();
         }
-        if (srcPos - destPos == (color == WHITE ? -8 : 8)) {
+        if (srcPos - destPos == (color == WHITE ? 8 : -8)) {
             // backwards check
             return MovementEvent.ILLEGAL.code();
         }
