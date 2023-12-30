@@ -2,6 +2,7 @@ package com.spiritlight.chess.fish.game.utils.board;
 
 import com.spiritlight.chess.fish.game.Piece;
 import com.spiritlight.chess.fish.internal.InternLogger;
+import com.spiritlight.fishutils.collections.IntList;
 import com.spiritlight.fishutils.misc.arrays.primitive.LongArray;
 
 import static com.spiritlight.chess.fish.game.Piece.*;
@@ -85,20 +86,46 @@ public class AttackTable {
     private static long[] populateDiagonal(int offset) {
         long[] array = new long[64];
         for(int i = 0; i < 64; i++) {
-            int index = i + offset;
-            long mask = 0;
-            int file = BoardHelper.getFile(index);
-            int rank = BoardHelper.getRank(index);
-            InternLogger.getLogger().debug(STR."debug at i=\{i} (index #\{index}) has file/rank \{file} \{rank} (offset \{offset})");
-            while(index >= 0 && index < 64 && Math.abs(file) - Math.abs(rank) == 1) {
-                long l = 1L << index;
-                mask |= l;
-                index += offset;
-            }
-            InternLogger.getLogger().debug(STR."Generated bitcount \{Long.bitCount(mask)}");
-            array[i] = mask;
+            array[i] = getDiagonalSliding(i, offset);
         }
         return array;
+    }
+
+    private static long getDiagonalSliding(int pos, int offset) {
+        int idx = 1; // Starting at 1 excludes itself
+        int file = BoardHelper.getFile(pos);
+        int rank = BoardHelper.getRank(pos);
+        IntList list = new IntList(8);
+        while (true) {
+            int x, y;
+            switch (offset) {
+                case NORTHWEST -> {
+                    x = file - idx;
+                    y = rank + idx;
+                }
+                case NORTHEAST -> {
+                    x = file + idx;
+                    y = rank + idx;
+                }
+                case SOUTHWEST -> {
+                    x = file - idx;
+                    y = rank - idx;
+                }
+                case SOUTHEAST -> {
+                    x = file + idx;
+                    y = rank - idx;
+                }
+                default -> throw new IllegalStateException(STR."Unexpected value: \{offset}");
+            }
+            if(x < 0 || x > 7 || y < 0 || y > 7) {
+                long ret = 0;
+                for(int value : list) ret |= 1L << value;
+                return ret;
+            } else {
+                list.add(x + 8 * y);
+                idx++;
+            }
+        }
     }
 
     // what's the opposite of diagonal? PR for the correct name

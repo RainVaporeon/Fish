@@ -216,15 +216,14 @@ public class Test {
     }
 
     private static void testDisplayAllAttackRay() {
-        int[] pieces = {BISHOP, ROOK, QUEEN};
-
         for(int i = 0; i < 64; i++) {
             System.out.println(" --- === BISHOP   START === --- ");
-            System.out.println(Magic.visualize(Bits.getRayAttack(0, i, pieces[0])));
+            System.out.println(Magic.visualize(Bits.getRayAttack(0, i, BISHOP)));
             System.out.println(" --- BISHOP END, ROOK START --- ");
-            System.out.println(Magic.visualize(Bits.getRayAttack(0, i, pieces[1])));
+            System.out.println(Magic.visualize(Bits.getRayAttack(0, i, ROOK)));
             System.out.println(" --- ROOK END,  QUEEN START --- ");
-            System.out.println(Magic.visualize(Bits.getRayAttack(0, i, pieces[2])));
+            System.out.println(Magic.visualize(Bits.getRayAttack(0, i, QUEEN)));
+            System.out.println("  -------- ALL FINISH --------  ");
         }
     }
 

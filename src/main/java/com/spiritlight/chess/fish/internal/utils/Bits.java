@@ -2,6 +2,8 @@ package com.spiritlight.chess.fish.internal.utils;
 
 import com.spiritlight.chess.fish.game.Piece;
 import com.spiritlight.chess.fish.game.utils.board.AttackTable;
+import com.spiritlight.chess.fish.game.utils.board.Magic;
+import com.spiritlight.chess.fish.internal.InternLogger;
 import com.spiritlight.fishutils.collections.IntList;
 
 public class Bits {
@@ -54,7 +56,8 @@ public class Bits {
     }
 
     private static long getQueenRay(long blocking, int pos) {
-        return getRookRay(blocking, pos) | getBishopRay(blocking, pos);
+        InternLogger.getLogger().debug(STR."bishop ray: \{Magic.visualize(getBishopRay(blocking, pos))}");
+        return getBishopRay(blocking, pos) | getRookRay(blocking, pos);
     }
 
     // Forward bitscan (for positive offsets)
