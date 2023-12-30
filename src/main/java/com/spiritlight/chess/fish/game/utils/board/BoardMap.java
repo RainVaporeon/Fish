@@ -264,8 +264,8 @@ public class BoardMap implements Cloneable {
         info.fullMove = layout[FULL_MOVE];
         boardMap.info = info;
         enemyBoardMap.info = info;
-        if(boardMap.inCheck() && info.turn == BLACK_TURN) throw new IllegalArgumentException("white in check, but it's black's info.turn");
-        if(enemyBoardMap.inCheck() && info.turn == WHITE_TURN) throw new IllegalArgumentException("black in check, but it's white's info.turn");
+        if(boardMap.inCheck() && info.turn == BLACK_TURN) throw new IllegalArgumentException("white in check, but it's black's turn");
+        if(enemyBoardMap.inCheck() && info.turn == WHITE_TURN) throw new IllegalArgumentException("black in check, but it's white's turn");
         return boardMap;
     }
 
@@ -335,8 +335,7 @@ public class BoardMap implements Cloneable {
             case KING -> verifyKing(srcPos, destPos, false);
             default -> throw new IllegalStateException(STR."Unexpected value: \{srcPiece & ~COLOR_MASK}");
         };
-        long srcMask = getMask(srcPos);
-        if(this.revealsCheck(srcPiece, srcMask)) return false;
+        if(this.revealsCheck(srcPiece, srcPos, destPos)) return false;
         return (handlerCode & ~PIECE_MASK) == 0;
     }
 
@@ -395,7 +394,7 @@ public class BoardMap implements Cloneable {
         // error.code() & 0x07 is not 0
         if(error != null && !forced) return error;
 
-        if(this.revealsCheck(srcPiece, srcMask)) return MovementEvent.ILLEGAL;
+        if(this.revealsCheck(srcPiece, srcPos, destPos)) return MovementEvent.ILLEGAL;
 
         // Anything past this line is not going to be interrupted.
 
@@ -463,17 +462,30 @@ public class BoardMap implements Cloneable {
         return new MovementEvent(srcPiece, destPiece, move);
     }
 
-    private boolean revealsCheck(int piece, long sourceMask) {
+    private boolean revealsCheck(int piece, int srcPos, int destPos) {
+        long sourceMask = getMask(srcPos);
+        long destMask = getMask(destPos);
+        int enemyPiece = enemyBoard.getSelfPieceAt(destPos, false) & PIECE_MASK;
+        boolean flag = enemyPiece != NONE;
         try {
             this.clear(piece, sourceMask);
+            this.retain(piece, destMask);
+            if(flag) {
+                enemyBoard.clear(enemyPiece, destMask);
+            }
             return this.inCheck();
         } finally {
             this.retain(piece, sourceMask);
+            this.clear(piece, destMask);
+            if(flag) {
+                enemyBoard.retain(enemyPiece, destMask);
+            }
         }
     }
 
     public boolean isCheckmate() {
         InternLogger.getLogger().debug(STR."king:\{this.king};other:\{this.isStalemate()},\{this.inCheck()}");
+        InternLogger.getLogger().debug(STR."bking:\{enemyBoard.king};other:\{enemyBoard.isStalemate()},\{enemyBoard.inCheck()}");
         return this.king == 0 || (this.isStalemate() && this.inCheck());
     }
 
