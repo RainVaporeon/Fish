@@ -65,7 +65,7 @@ public class MoveGenerator {
 
         IntList list = new IntList(8);
         for(int i = 0; i < 64; i++) {
-            if((bitboard.getColor() == WHITE ? bitboard : bitboard.getEnemyBoard()).canMove(index, i, true)) list.add(i);
+            if(bitboard.canMove(index, i, true)) list.add(i);
         }
         return list.stream().map(path -> Move.of(index, path)).toList();
     }

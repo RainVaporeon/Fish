@@ -48,6 +48,7 @@ public class Piece {
     }
 
     public static boolean isSlidingPiece(int piece) {
+        piece &= PIECE_MASK;
         return piece == BISHOP || piece == ROOK || piece == QUEEN;
     }
 

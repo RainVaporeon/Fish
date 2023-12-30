@@ -1,6 +1,7 @@
 package com.spiritlight.chess.fish.game.utils.board;
 
 import com.spiritlight.chess.fish.game.Piece;
+import com.spiritlight.chess.fish.internal.InternLogger;
 import com.spiritlight.fishutils.misc.arrays.primitive.LongArray;
 
 import static com.spiritlight.chess.fish.game.Piece.*;
@@ -18,14 +19,14 @@ public class AttackTable {
     public static final int NORTH = 8, NORTHWEST = 7, WEST = -1, SOUTHWEST = -9, SOUTH = -8, SOUTHEAST = -7, EAST = 1, NORTHEAST = 9;
 
     // Ray attack to that position
-    private static final long[] rayN  = populate(POSITION_OFFSETS[0]);
-    private static final long[] rayNW = populate(POSITION_OFFSETS[1]);
-    private static final long[] rayW  = populate(POSITION_OFFSETS[2]);
-    private static final long[] raySW = populate(POSITION_OFFSETS[3]);
-    private static final long[] rayS  = populate(POSITION_OFFSETS[4]);
-    private static final long[] raySE = populate(POSITION_OFFSETS[5]);
-    private static final long[] rayE  = populate(POSITION_OFFSETS[6]);
-    private static final long[] rayNE = populate(POSITION_OFFSETS[7]);
+    private static final long[] rayN  = populateStraight(POSITION_OFFSETS[0]);
+    private static final long[] rayNW = populateDiagonal(POSITION_OFFSETS[1]);
+    private static final long[] rayW  = populateStraight(POSITION_OFFSETS[2]);
+    private static final long[] raySW = populateDiagonal(POSITION_OFFSETS[3]);
+    private static final long[] rayS  = populateStraight(POSITION_OFFSETS[4]);
+    private static final long[] raySE = populateDiagonal(POSITION_OFFSETS[5]);
+    private static final long[] rayE  = populateStraight(POSITION_OFFSETS[6]);
+    private static final long[] rayNE = populateDiagonal(POSITION_OFFSETS[7]);
 
     private static final long[] directKnight, directBishop, directRook, directQueen, directKing;
 
@@ -81,18 +82,43 @@ public class AttackTable {
         directKing = K;
     }
 
-    private static long[] populate(int offset) {
-        long[] arr = new long[64];
+    private static long[] populateDiagonal(int offset) {
+        long[] array = new long[64];
         for(int i = 0; i < 64; i++) {
+            int index = i + offset;
             long mask = 0;
-            int pos = i + offset;
-            while(pos >= 0 && pos < 64) {
-                mask |= 1L << pos;
-                pos += offset;
+            int file = BoardHelper.getFile(index);
+            int rank = BoardHelper.getRank(index);
+            InternLogger.getLogger().debug(STR."debug at i=\{i} (index #\{index}) has file/rank \{file} \{rank} (offset \{offset})");
+            while(index >= 0 && index < 64 && Math.abs(file) - Math.abs(rank) == 1) {
+                long l = 1L << index;
+                mask |= l;
+                index += offset;
             }
-            arr[i] = mask;
+            InternLogger.getLogger().debug(STR."Generated bitcount \{Long.bitCount(mask)}");
+            array[i] = mask;
         }
-        return arr;
+        return array;
+    }
+
+    // what's the opposite of diagonal? PR for the correct name
+    private static long[] populateStraight(int offset) {
+        long[] array = new long[64];
+        for(int i = 0; i < 64; i++) {
+            int index = i + offset;
+            int initialFile = BoardHelper.getFile(index);
+            int initialRank = BoardHelper.getRank(index);
+            long mask = 0;
+
+            while(index >= 0 && index < 64 && // within bounds, or the index stays consistent to rank/index
+                    (BoardHelper.getFile(index) == initialFile || BoardHelper.getRank(index) == initialRank)) {
+                long l = 1L << index;
+                mask |= l;
+                index += offset;
+            }
+            array[i] = mask;
+        }
+        return array;
     }
 
     private static final LongArray EMPTY = new LongArray(new long[64]);
@@ -116,15 +142,16 @@ public class AttackTable {
     }
 
     public static long getRay(int pos, int offset) {
-        return switch (pos) {
-            case 8 -> rayN[offset];
-            case 7 -> rayNW[offset];
-            case -1 -> rayW[offset];
-            case -9 -> raySW[offset];
-            case -8 -> rayS[offset];
-            case -7 -> raySE[offset];
-            case 1 -> rayE[offset];
-            case 9 -> rayNE[offset];
+        if(pos == 64) return 0; // non-conflicting with blockers
+        return switch (offset) {
+            case 8 -> rayN[pos];
+            case 7 -> rayNW[pos];
+            case -1 -> rayW[pos];
+            case -9 -> raySW[pos];
+            case -8 -> rayS[pos];
+            case -7 -> raySE[pos];
+            case 1 -> rayE[pos];
+            case 9 -> rayNE[pos];
             default -> throw new IllegalArgumentException(STR."for input pos:offset: \{pos}:\{offset}");
         };
     }

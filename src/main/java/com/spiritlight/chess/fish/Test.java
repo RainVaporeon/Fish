@@ -11,6 +11,7 @@ import com.spiritlight.chess.fish.game.utils.game.BoardEvaluator;
 import com.spiritlight.chess.fish.game.utils.game.Move;
 import com.spiritlight.chess.fish.game.utils.game.MovementEvent;
 import com.spiritlight.chess.fish.internal.InternLogger;
+import com.spiritlight.chess.fish.internal.utils.Bits;
 import com.spiritlight.chess.fish.internal.utils.board.GameBitboard;
 import com.spiritlight.chess.fish.internal.utils.resources.Resources;
 import com.spiritlight.chess.fish.test.TestComponent;
@@ -38,6 +39,9 @@ public class Test {
         timer.start();
         testFenString(timer); // Contains I/O to receive off-heap data, fence internally instead.
         timer.record("fen");
+        timer.fence("board.ray");
+        testDisplayAllAttackRay();
+        timer.record("board.ray");
         timer.fence("fen.parse");
         testParsing();
         timer.record("fen.parse");
@@ -209,6 +213,19 @@ public class Test {
 
             System.out.println(STR."Evaluation: \{BoardEvaluator.evaluateFormatted(map, GameState.MIDDLE_GAME)}");
         }, "Unexpected error whilst evaluating position");
+    }
+
+    private static void testDisplayAllAttackRay() {
+        int[] pieces = {BISHOP, ROOK, QUEEN};
+
+        for(int i = 0; i < 64; i++) {
+            System.out.println(" --- === BISHOP   START === --- ");
+            System.out.println(Magic.visualize(Bits.getRayAttack(0, i, pieces[0])));
+            System.out.println(" --- BISHOP END, ROOK START --- ");
+            System.out.println(Magic.visualize(Bits.getRayAttack(0, i, pieces[1])));
+            System.out.println(" --- ROOK END,  QUEEN START --- ");
+            System.out.println(Magic.visualize(Bits.getRayAttack(0, i, pieces[2])));
+        }
     }
 
     private static void testGenerateSlidingMoves() {

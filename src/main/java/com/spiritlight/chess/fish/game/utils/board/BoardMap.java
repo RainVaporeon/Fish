@@ -316,11 +316,11 @@ public class BoardMap implements Cloneable {
         return canMove(srcPos, destPos, false);
     }
 
-    public boolean canMove(int srcPos, int destPos, boolean respectColor) {
+    public boolean canMove(int srcPos, int destPos, boolean respectTurn) {
         int srcPiece = this.getPieceAt(srcPos);
         int destPiece = this.getPieceAt(destPos);
 
-        if(respectColor) {
+        if(respectTurn) {
             if(Piece.color(this.getPieceAt(srcPos)) != (this.info.turn == WHITE_TURN ? WHITE : BLACK)) return false;
             if(Piece.is(srcPiece, NONE)) return false;
         }
@@ -394,7 +394,7 @@ public class BoardMap implements Cloneable {
         // error.code() & 0x07 is not 0
         if(error != null && !forced) return error;
 
-        if(this.revealsCheck(srcPiece, srcPos, destPos)) return MovementEvent.ILLEGAL;
+        if(this.revealsCheck(srcPiece, srcPos, destPos)) return MovementEvent.REVEALS_CHECK;
 
         // Anything past this line is not going to be interrupted.
 
@@ -736,7 +736,7 @@ public class BoardMap implements Cloneable {
      * Returns whether the current king gets cleared with the enemy
      * attack mask
      */
-    private boolean inCheck() {
+    public boolean inCheck() {
         return ((king & ~this.getAttackMask(enemyBoard.color)) == 0);
     }
 
@@ -752,7 +752,7 @@ public class BoardMap implements Cloneable {
             int color = v & COLOR_MASK;
             int piece = v & PIECE_MASK;
             if(color != side) continue;
-            if(Piece.isSlidingPiece(v)) {
+            if(Piece.isSlidingPiece(piece)) {
                 ll |= Bits.getRayAttack(this.getBlockers(), i, v);
             } else {
                 ll |= AttackTable.getMaskAt(piece, i);

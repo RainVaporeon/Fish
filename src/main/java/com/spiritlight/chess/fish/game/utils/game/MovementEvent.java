@@ -38,11 +38,15 @@ public class MovementEvent {
     /**
      * It's white to play, but a black piece was moved
      */
-    public static final MovementEvent WHITE_TO_PLAY = createError(WHITE, "White to play (Wrong move target color)");
+    public static final MovementEvent WHITE_TO_PLAY = createError(-WHITE, "White to play (Wrong move target color)");
     /**
      * It's black to play, but a white piece was moved
      */
-    public static final MovementEvent BLACK_TO_PLAY = createError(BLACK, "Black to play (Wrong move target color)");
+    public static final MovementEvent BLACK_TO_PLAY = createError(-BLACK, "Black to play (Wrong move target color)");
+    /**
+     * This move will leave the king vulnerable to capture
+     */
+    public static final MovementEvent UNRESOLVED_CHECK = createError(0x80000003, "Unresolved check present");
 
     private final int capturingPiece;
     private final int capturedPiece;
