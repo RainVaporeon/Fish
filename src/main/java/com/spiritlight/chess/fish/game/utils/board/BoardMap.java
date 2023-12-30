@@ -538,10 +538,12 @@ public class BoardMap implements Cloneable {
             }
         }
 
-        if(Math.abs(srcPos - destPos) == 16) {
+        if(Math.abs(rank - destRank) == 2) {
+            // tried to capture and move two squares forward
+            if(file != destFile) return MovementEvent.ILLEGAL.code();
             // check if pawn can advance two squares forward
             if((pawnAdvance & getByteMask(file)) != 0) {
-                if(file != destFile || (BoardHelper.getRank(srcPos) != (this.color == WHITE ? 1 : 6))) {
+                if(BoardHelper.getRank(srcPos) != (this.color == WHITE ? 1 : 6)) {
                     return MovementEvent.ILLEGAL.code();
                 }
             } else {
