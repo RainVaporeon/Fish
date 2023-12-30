@@ -11,6 +11,7 @@ import com.spiritlight.chess.fish.internal.InternLogger;
 import com.spiritlight.chess.fish.internal.annotation.Mask;
 import com.spiritlight.chess.fish.internal.annotation.MaskType;
 import com.spiritlight.chess.fish.internal.exceptions.SystemError;
+import com.spiritlight.chess.fish.internal.utils.Bits;
 import com.spiritlight.fishutils.collections.Pair;
 import com.spiritlight.fishutils.misc.annotations.Modifies;
 
@@ -142,7 +143,7 @@ public class BoardMap implements Cloneable {
     }
 
     public Pair<GameState, EndType> getGameState() {
-        if(info.fullMove >= 50) return Pair.of(GameState.GAME_END, EndType.DRAW_50_MOVE);
+        if(info.halfMove >= 100) return Pair.of(GameState.GAME_END, EndType.DRAW_50_MOVE);
         if(this.isCheckmate()) {
             return Pair.of(GameState.GAME_END, this.color == WHITE ? EndType.BLACK_WIN_CHECKMATE : EndType.WHITE_WIN_CHECKMATE);
         }
@@ -472,6 +473,7 @@ public class BoardMap implements Cloneable {
     }
 
     public boolean isCheckmate() {
+        InternLogger.getLogger().debug(STR."king:\{this.king};other:\{this.isStalemate()},\{this.inCheck()}");
         return this.king == 0 || (this.isStalemate() && this.inCheck());
     }
 
@@ -479,7 +481,7 @@ public class BoardMap implements Cloneable {
         List<Move> moves = new LinkedList<>();
         MoveGenerator gen = MoveGenerator.create(this);
         for(int i = 0; i < 64; i++) {
-            moves.addAll(gen.getValidMovesFor(i));
+            moves.addAll(gen.getValidMovesFor(i, false));
         }
         return moves.isEmpty();
     }
@@ -497,6 +499,8 @@ public class BoardMap implements Cloneable {
     private int verifyPawn(int srcPos, int destPos, int destPiece, boolean verify) {
         int file = BoardHelper.getFile(srcPos);
         int destFile = BoardHelper.getFile(destPos);
+        int rank = BoardHelper.getRank(srcPos);
+        int destRank = BoardHelper.getRank(destPos);
         // The minimum tile a pawn can move is 7 (Forward + left/right offset)
         if (Math.abs(file - destFile) > 1 || Math.abs(srcPos - destPos) < 7) {
             // InternLogger.getLogger().debug(STR."Distance too far horizontally: From \{file} to \{destFile} / Unexpected distance");
@@ -512,16 +516,26 @@ public class BoardMap implements Cloneable {
         }
         if ((Math.abs(file - destFile) == 1 && destPiece == NONE) || (file == destFile && destPiece != NONE)) {
             // InternLogger.getLogger().debug("Captures nothing / Advances into something");
-            if(destPos != info.enPassantSquare) return MovementEvent.ILLEGAL.code();
+            if(destPos == info.enPassantSquare) {
+                int en = BoardHelper.getRank(info.enPassantSquare);
+                if((this.color == WHITE && en == 2) || (this.color == BLACK && en == 5)) {
+                    return MovementEvent.ILLEGAL.code();
+                }
+            } else {
+                return MovementEvent.ILLEGAL.code();
+            }
         }
 
         if(Math.abs(srcPos - destPos) == 16) {
-            if((pawnAdvance & getByteMask(file)) == 0) {
-                // InternLogger.getLogger().debug("Pawn advance does not match with byte mask / Tries to capture illegally");
-                if(BoardHelper.getRank(srcPos) != (this.color == WHITE ? 1 : 6) || file != destFile) {
+            // check if pawn can advance two squares forward
+            if((pawnAdvance & getByteMask(file)) != 0) {
+                if(file != destFile || (BoardHelper.getRank(srcPos) != (this.color == WHITE ? 1 : 6))) {
                     return MovementEvent.ILLEGAL.code();
                 }
+            } else {
+                return MovementEvent.ILLEGAL.code();
             }
+            // tried to capture two squares forward
             if(this.getPieceAt(srcPos + (info.turn == WHITE_TURN ? FORWARD_OFFSET : -FORWARD_OFFSET)) != NONE) {
                 // InternLogger.getLogger().debug("Pawn advances past something");
                 return MovementEvent.ILLEGAL.code();
@@ -726,7 +740,11 @@ public class BoardMap implements Cloneable {
             int color = v & COLOR_MASK;
             int piece = v & PIECE_MASK;
             if(color != side) continue;
-            ll |= AttackTable.getMaskAt(piece, i);
+            if(Piece.isSlidingPiece(v)) {
+                ll |= Bits.getRayAttack(this.getBlockers(), i, v);
+            } else {
+                ll |= AttackTable.getMaskAt(piece, i);
+            }
         }
         return ll;
     }
