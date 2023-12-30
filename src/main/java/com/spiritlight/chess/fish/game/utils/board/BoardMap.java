@@ -737,7 +737,7 @@ public class BoardMap implements Cloneable {
      * attack mask
      */
     public boolean inCheck() {
-        return ((king & ~this.getAttackMask(enemyBoard.color)) == 0);
+        return ((king & ~this.getAttackMask(enemyBoard.color, this.king)) == 0);
     }
 
     /**
@@ -745,15 +745,18 @@ public class BoardMap implements Cloneable {
      * @param side the side
      * @return the attack mask
      */
-    private long getAttackMask(int side) {
+    private long getAttackMask(int side, long... blockerFilter) {
         long ll = 0L;
+        long blockers = this.getBlockers();
+        if(blockerFilter != null) {
+            for(long l : blockerFilter) blockers &= ~l;
+        }
+        BoardMap map = side == this.color ? this : enemyBoard;
         for(int i = 0; i < 64; i++) {
-            int v = this.getPieceAt(i);
-            int color = v & COLOR_MASK;
-            int piece = v & PIECE_MASK;
+            int piece = map.getSelfPieceAt(i, false);
             if(color != side) continue;
             if(Piece.isSlidingPiece(piece)) {
-                ll |= Bits.getRayAttack(this.getBlockers(), i, v);
+                ll |= Bits.getRayAttack(blockers, i, piece);
             } else {
                 ll |= AttackTable.getMaskAt(piece, i);
             }
