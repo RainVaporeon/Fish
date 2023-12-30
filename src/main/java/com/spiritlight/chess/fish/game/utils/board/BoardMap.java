@@ -333,7 +333,7 @@ public class BoardMap implements Cloneable {
             case ROOK -> verifyRook(srcPos, destPos);
             case QUEEN -> verifyQueen(srcPos, destPos);
             case KING -> verifyKing(srcPos, destPos, false);
-            default -> throw new IllegalStateException(STR."Unexpected value: \{srcPiece & ~COLOR_MASK}");
+            default -> throw new IllegalStateException(STR."Unexpected value: \{Integer.toHexString(srcPiece)}");
         };
         if(this.revealsCheck(srcPiece, srcPos, destPos)) return false;
         return (handlerCode & ~PIECE_MASK) == 0;
