@@ -31,7 +31,7 @@ public class MoveGenerator {
      * number denoted in {@link com.spiritlight.chess.fish.game.Piece},
      * color excluded.
      */
-    private int cursor;
+    private int cursor; /* unused */
 
     private MoveGenerator(BoardMap board) {
         this.bitboard = board;
