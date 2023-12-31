@@ -320,12 +320,24 @@ public class BoardMap implements Cloneable {
         int srcPiece = this.getPieceAt(srcPos);
         int destPiece = this.getPieceAt(destPos);
 
+        if(Piece.color(srcPiece) != this.color) {
+            if(Piece.color(srcPiece) != enemyBoard.color) throw new SystemError(STR."invalid piece \{Integer.toHexString(srcPiece)} and color, this board: \{this}, enemy: \{enemyBoard}");
+            return enemyBoard.canMove(srcPos, destPos, respectTurn);
+        }
+
         if(respectTurn) {
             if(Piece.color(this.getPieceAt(srcPos)) != (this.info.turn == WHITE_TURN ? WHITE : BLACK)) return false;
             if(Piece.is(srcPiece, NONE)) return false;
         }
 
-        if(Piece.color(srcPiece) == Piece.color(destPiece)) return false;
+        if(Piece.color(srcPiece) == Piece.color(destPiece)) {
+            // castling input is valid, checked later on, so same-color non-castling moves are
+            // then canceled.
+            if (!Piece.is(srcPiece, KING) || !Piece.is(destPiece, ROOK)) {
+                InternLogger.getLogger().debug(STR."not king and rook: \{Piece.asString(srcPiece)}, \{Piece.asString(destPiece)}");
+                return false;
+            }
+        }
         int handlerCode = switch (srcPiece & ~COLOR_MASK) {
             case PAWN -> verifyPawn(srcPos, destPos, destPiece, true);
             case BISHOP -> verifyBishop(srcPos, destPos);
@@ -648,7 +660,7 @@ public class BoardMap implements Cloneable {
     @Special
     private int verifyKing(int srcPos, int destPos, boolean shouldCastle) {
         if(this.getSelfPieceAt(destPos, false) == (color | ROOK)) {
-            int kq = BoardHelper.getFile(destPos) == 7 ? CASTLE_K_MASK : CASTLE_Q_MASK;
+            int kq = BoardHelper.getFile(destPos) == 7 ? CASTLE_K_MASK : BoardHelper.getFile(destPos) == 0 ? CASTLE_Q_MASK : 0;
             if(!doCastle(kq, shouldCastle)) {
                 return MovementEvent.ILLEGAL.code();
             } else {
