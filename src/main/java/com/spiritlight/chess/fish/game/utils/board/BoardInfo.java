@@ -9,6 +9,11 @@ public class BoardInfo {
 
     @Override
     public String toString() {
-        return STR."BoardInfo{enPassantSquare=\{enPassantSquare}, turn=\{turn}, halfMove=\{halfMove}, fullMove=\{fullMove}\{'}'}";
+        return String.format("""
+                enPassant=%s,
+                turn=%s,
+                halfMove=%s,
+                fullMove=%s
+                """, enPassantSquare, turn, halfMove, fullMove);
     }
 }

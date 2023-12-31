@@ -320,8 +320,10 @@ public class BoardMap implements Cloneable {
         int srcPiece = this.getPieceAt(srcPos);
         int destPiece = this.getPieceAt(destPos);
 
+        if(Piece.is(srcPiece, NONE)) return false; // no piece = moves to nowhere
         if(Piece.color(srcPiece) != this.color) {
-            if(Piece.color(srcPiece) != enemyBoard.color) throw new SystemError(STR."invalid piece \{Integer.toHexString(srcPiece)} and color, this board: \{this}, enemy: \{enemyBoard}");
+            // avoiding recursion
+            if(Piece.color(srcPiece) != enemyBoard.color) throw new SystemError(STR."invalid src piece \{Integer.toHexString(srcPiece)}=\{Piece.asString(srcPiece)} (dest \{Integer.toHexString(destPiece)}=\{Piece.asString(destPiece)}) and color, this board: \n\{this}, enemy: \n\{enemyBoard}");
             return enemyBoard.canMove(srcPos, destPos, respectTurn);
         }
 
@@ -334,7 +336,6 @@ public class BoardMap implements Cloneable {
             // castling input is valid, checked later on, so same-color non-castling moves are
             // then canceled.
             if (!Piece.is(srcPiece, KING) || !Piece.is(destPiece, ROOK)) {
-                InternLogger.getLogger().debug(STR."not king and rook: \{Piece.asString(srcPiece)}, \{Piece.asString(destPiece)}");
                 return false;
             }
         }
@@ -898,7 +899,9 @@ public class BoardMap implements Cloneable {
                 Rook  :%s
                 Queen :%s
                 King  :%s
-                """, pawn, knight, bishop, rook, queen, king);
+                Board Color: %s; Castle flag: %s; Pawn advance mask: %s
+                Board Info: %s
+                """, pawn, knight, bishop, rook, queen, king, this.color, Integer.toHexString(this.castle), Integer.toBinaryString(pawnAdvance) , this.info);
     }
 
     public class BoardItr implements Iterator<Long> {
