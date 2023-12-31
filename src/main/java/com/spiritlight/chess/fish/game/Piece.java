@@ -36,7 +36,8 @@ public class Piece {
     public static boolean is(int piece, int type) {
         if(type == NONE) return piece == 0 || (piece & PIECE_MASK) == 0;
         if(piece == NONE) return false;
-        return ((piece & PIECE_MASK) & ~type) == 0;
+        if(piece == type) return true;
+        return (piece & PIECE_MASK) == type;
     }
 
     /**
