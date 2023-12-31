@@ -98,7 +98,7 @@ public class Test {
         BoardMap map = BoardMap.fromFENString("r3k2r/pppppppp/8/8/8/8/PPPPPPPP/R3K2R w KQkq - 0 1");
         Move kingCastle = Move.of("e1,h1");
 
-        assertTrue(map.canMove(kingCastle.sourcePos(), kingCastle.destPos()), "castle K failed");
+        assertTrue(map.canMove(kingCastle.sourcePos(), kingCastle.destPos()), "castle K check failed");
 
         MovementEvent event = map.update(kingCastle);
         assertFalse(event.illegal(), STR."illegal legal castle move \{event}");
@@ -107,7 +107,7 @@ public class Test {
         BoardMap mapq = BoardMap.fromFENString("r3k2r/pppppppp/8/8/8/8/PPPPPPPP/R3K2R w KQkq - 0 1");
         Move queenCastle = Move.of("e1,a1");
 
-        assertTrue(mapq.canMove(queenCastle.sourcePos(), queenCastle.destPos()), "castle Q failed");
+        assertTrue(mapq.canMove(queenCastle.sourcePos(), queenCastle.destPos()), "castle Q check failed");
 
         MovementEvent eventQ = mapq.update(queenCastle);
         assertFalse(eventQ.illegal(), STR."illegal legal castle move \{eventQ}");
@@ -116,7 +116,7 @@ public class Test {
         BoardMap mapbk = BoardMap.fromFENString("r3k2r/pppppppp/8/8/8/8/PPPPPPPP/R3K2R b KQkq - 0 1");
         Move bkCastle = Move.of("e8,h8");
 
-        assertTrue(mapbk.canMove(bkCastle.sourcePos(), bkCastle.destPos()), "castle BK failed");
+        assertTrue(mapbk.canMove(bkCastle.sourcePos(), bkCastle.destPos()), "castle BK check failed");
 
         MovementEvent eventB = mapbk.update(bkCastle);
         assertFalse(eventB.illegal(), STR."illegal legal castle move \{eventB}");
@@ -125,7 +125,7 @@ public class Test {
         BoardMap mapbq = BoardMap.fromFENString("r3k2r/pppppppp/8/8/8/8/PPPPPPPP/R3K2R b KQkq - 0 1");
         Move bqCastle = Move.of("e8,a8");
 
-        assertTrue(mapbq.canMove(bqCastle.sourcePos(), bqCastle.destPos()), "castle BQ failed");
+        assertTrue(mapbq.canMove(bqCastle.sourcePos(), bqCastle.destPos()), "castle BQ check failed");
 
         MovementEvent eventBQ = mapbq.update(bqCastle);
         assertFalse(eventBQ.illegal(), STR."illegal legal castle move \{eventBQ}");
