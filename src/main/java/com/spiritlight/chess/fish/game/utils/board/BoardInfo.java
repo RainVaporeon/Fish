@@ -1,6 +1,6 @@
 package com.spiritlight.chess.fish.game.utils.board;
 
-public class BoardInfo {
+public class BoardInfo implements Cloneable {
     /* package-private */ int enPassantSquare = 0;
     // Uses: WHITE, BLACK (0, 1)
     /* package-private */ int turn = 0;
@@ -15,5 +15,14 @@ public class BoardInfo {
                 halfMove=%s,
                 fullMove=%s
                 """, enPassantSquare, turn, halfMove, fullMove);
+    }
+
+    @Override
+    public BoardInfo clone() {
+        try {
+            return (BoardInfo) super.clone();
+        } catch (CloneNotSupportedException e) {
+            throw new AssertionError();
+        }
     }
 }

@@ -357,6 +357,8 @@ public class BoardMap implements Cloneable {
         BoardMap enemy = this.enemyBoard.clone();
         current.enemyBoard = enemy;
         enemy.enemyBoard = current;
+        current.info = info.clone();
+        enemy.info = enemyBoard.info.clone();
         return current;
     }
 
@@ -364,10 +366,17 @@ public class BoardMap implements Cloneable {
         return info.turn;
     }
 
+    public void setTurn(int turn) {
+        info.turn = turn;
+    }
+
     @Override
     public BoardMap clone() {
         try {
-            return (BoardMap) super.clone();
+            final BoardMap clone = (BoardMap) super.clone();
+            clone.info = info.clone();
+            clone.enemyBoard.info = enemyBoard.info.clone();
+            return clone;
         } catch (CloneNotSupportedException what) {
             throw new AssertionError(what);
         }
@@ -522,6 +531,8 @@ public class BoardMap implements Cloneable {
 
     @Modifies({"info.enPassantSquare", "pawnAdvance"})
     private int verifyPawn(int srcPos, int destPos, int destPiece, boolean verify) {
+        // TODO: Fix backwards capture on wrong color piece
+        // TODO: Assumption: didn't check for capture offset for given pawn color
         int file = BoardHelper.getFile(srcPos);
         int destFile = BoardHelper.getFile(destPos);
         int rank = BoardHelper.getRank(srcPos);
