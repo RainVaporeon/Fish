@@ -97,22 +97,38 @@ public class Test {
     private static void testCastle() {
         BoardMap map = BoardMap.fromFENString("r3k2r/pppppppp/8/8/8/8/PPPPPPPP/R3K2R w KQkq - 0 1");
         Move kingCastle = Move.of("e1,h1");
-        map.update(kingCastle);
+
+        assertTrue(map.canMove(kingCastle.sourcePos(), kingCastle.destPos()), "castle K failed");
+
+        MovementEvent event = map.update(kingCastle);
+        assertFalse(event.illegal(), STR."illegal legal castle move \{event}");
         assertEquals(map.toFENString(), "r3k2r/pppppppp/8/8/8/8/PPPPPPPP/R4RK1 b kq - 1 1", "Kingside castle incorrect");
 
         BoardMap mapq = BoardMap.fromFENString("r3k2r/pppppppp/8/8/8/8/PPPPPPPP/R3K2R w KQkq - 0 1");
         Move queenCastle = Move.of("e1,a1");
-        mapq.update(queenCastle);
+
+        assertTrue(mapq.canMove(queenCastle.sourcePos(), queenCastle.destPos()), "castle Q failed");
+
+        MovementEvent eventQ = mapq.update(queenCastle);
+        assertFalse(eventQ.illegal(), STR."illegal legal castle move \{eventQ}");
         assertEquals(mapq.toFENString(), "r3k2r/pppppppp/8/8/8/8/PPPPPPPP/2KR3R b kq - 1 1", "Queenside castle incorrect");
 
         BoardMap mapbk = BoardMap.fromFENString("r3k2r/pppppppp/8/8/8/8/PPPPPPPP/R3K2R b KQkq - 0 1");
         Move bkCastle = Move.of("e8,h8");
-        mapbk.update(bkCastle);
+
+        assertTrue(mapbk.canMove(bkCastle.sourcePos(), bkCastle.destPos()), "castle BK failed");
+
+        MovementEvent eventB = mapbk.update(bkCastle);
+        assertFalse(eventB.illegal(), STR."illegal legal castle move \{eventB}");
         assertEquals(mapbk.toFENString(), "r4rk1/pppppppp/8/8/8/8/PPPPPPPP/R3K2R w KQ - 1 2", "BKingside castle incorrect");
 
         BoardMap mapbq = BoardMap.fromFENString("r3k2r/pppppppp/8/8/8/8/PPPPPPPP/R3K2R b KQkq - 0 1");
         Move bqCastle = Move.of("e8,a8");
-        mapbq.update(bqCastle);
+
+        assertTrue(mapbq.canMove(bqCastle.sourcePos(), bqCastle.destPos()), "castle BQ failed");
+
+        MovementEvent eventBQ = mapbq.update(bqCastle);
+        assertFalse(eventBQ.illegal(), STR."illegal legal castle move \{eventBQ}");
         assertEquals(mapbq.toFENString(), "2kr3r/pppppppp/8/8/8/8/PPPPPPPP/R3K2R w KQ - 1 2", "BQueenside castle incorrect");
 
     }
