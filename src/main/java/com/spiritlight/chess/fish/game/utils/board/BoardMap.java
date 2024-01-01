@@ -435,6 +435,10 @@ public class BoardMap implements Cloneable {
                 }
                 enpFlag = true;
             }
+
+            if(Math.abs(BoardHelper.getRank(srcPos) - BoardHelper.getRank(destPos)) != 2) {
+                this.info.enPassantSquare = -1;
+            }
         }
         /* Castle rights too */
         if(Piece.is(srcPiece, KING)) {
@@ -528,7 +532,7 @@ public class BoardMap implements Cloneable {
     // Side note, I kind of forgot why I made the translating
     // method return null (denoting success) if &~0b111 returns
     // 0. Leaving it as is though.
-
+    // TODO: This is too complex for our own goods.
     @Modifies({"info.enPassantSquare", "pawnAdvance"})
     private int verifyPawn(int srcPos, int destPos, int destPiece, boolean verify) {
         // TODO: Fix backwards capture on wrong color piece
@@ -542,7 +546,7 @@ public class BoardMap implements Cloneable {
             // InternLogger.getLogger().debug(STR."Distance too far horizontally: From \{file} to \{destFile} / Unexpected distance");
             return MovementEvent.ILLEGAL.code();
         }
-        if (srcPos - destPos == (color == WHITE ? 8 : -8)) {
+        if (destRank - rank == (color == WHITE ? -1 : 1)) {
             // backwards check
             return MovementEvent.ILLEGAL.code();
         }
