@@ -21,6 +21,11 @@ public class Piece {
     public static final int WHITE = 0b00001000;
     public static final int BLACK = 0b00010000;
 
+    public static final long TOP_BORDER_MASK = 0xFFL << 56;
+    public static final long LEFT_BORDER_MASK = 0x8080808080808080L;
+    public static final long RIGHT_BORDER_MASK = 0x0101010101010101L;
+    public static final long BOTTOM_BORDER_MASK = 0xFF;
+
     @MaskType({Mask.EXTRACT, Mask.CLEAR})
     public static final int COLOR_MASK = 0b00011000;
 
@@ -63,7 +68,7 @@ public class Piece {
      * go to
      */
     public static int[] sliding(int piece, int src) {
-        if (!Piece.isSlidingPiece(piece)) throw new SystemError(STR."Unexpected call to sliding() with parameter \{piece}, \{src}");
+        if (!Piece.isSlidingPiece(piece) || src < 0 || src >= 64) throw new SystemError(STR."Unexpected call to sliding() with parameter \{piece}, \{src}");
         if (piece == PAWN) return new int[]{src + FORWARD_OFFSET};
         int file = BoardHelper.getFile(src);
         int rank = BoardHelper.getRank(src);
