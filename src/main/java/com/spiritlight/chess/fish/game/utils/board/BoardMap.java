@@ -13,6 +13,7 @@ import com.spiritlight.chess.fish.internal.annotation.MaskType;
 import com.spiritlight.chess.fish.internal.exceptions.SystemError;
 import com.spiritlight.chess.fish.internal.utils.Bits;
 import com.spiritlight.fishutils.collections.Pair;
+import com.spiritlight.fishutils.logging.ILogger;
 import com.spiritlight.fishutils.misc.annotations.Modifies;
 
 import java.lang.annotation.*;
@@ -147,7 +148,13 @@ public class BoardMap implements Cloneable {
         if(this.isCheckmate()) {
             return Pair.of(GameState.GAME_END, this.color == WHITE ? EndType.BLACK_WIN_CHECKMATE : EndType.WHITE_WIN_CHECKMATE);
         }
+        if(enemyBoard.isCheckmate()) {
+            return Pair.of(GameState.GAME_END, this.color == WHITE ? EndType.BLACK_WIN_CHECKMATE : EndType.WHITE_WIN_CHECKMATE);
+        }
         if(this.isStalemate()) {
+            return Pair.of(GameState.GAME_END, EndType.DRAW_STALEMATE);
+        }
+        if(enemyBoard.isStalemate()) {
             return Pair.of(GameState.GAME_END, EndType.DRAW_STALEMATE);
         }
         GameState state;
@@ -382,6 +389,8 @@ public class BoardMap implements Cloneable {
         }
     }
 
+    private static final int CASTLE_FLAG = 1, PROMOTION_FLAG = 2;
+
     /**
      * handles the move
      * @param srcPiece the source piece
@@ -412,6 +421,7 @@ public class BoardMap implements Cloneable {
             default -> throw new IllegalStateException(STR."Unexpected value: \{srcPiece & ~COLOR_MASK}");
         };
         boolean castleFlag = handlerCode == 1;
+        boolean promoFlag = handlerCode == 2;
         MovementEvent error = translate(handlerCode);
         // error.code() & 0x07 is not 0
         if(error != null && !forced) return error;
@@ -466,7 +476,7 @@ public class BoardMap implements Cloneable {
         // Past this line is when all moves are confirmed to be valid
 
         // If we castled, it has already been handled internally via doCastle
-        if(!castleFlag) {
+        if(!(castleFlag || promoFlag)) {
             clear(srcPiece & ~COLOR_MASK, srcMask);
             retain(srcPiece & ~COLOR_MASK, destMask);
         }
@@ -533,10 +543,10 @@ public class BoardMap implements Cloneable {
     // method return null (denoting success) if &~0b111 returns
     // 0. Leaving it as is though.
     // TODO: This is too complex for our own goods.
+    // Simplifications may be needed.
+    // Would having 4 if-statement to check for advancing and captures be better?
     @Modifies({"info.enPassantSquare", "pawnAdvance"})
     private int verifyPawn(int srcPos, int destPos, int destPiece, boolean verify) {
-        // TODO: Fix backwards capture on wrong color piece
-        // TODO: Assumption: didn't check for capture offset for given pawn color
         int file = BoardHelper.getFile(srcPos);
         int destFile = BoardHelper.getFile(destPos);
         int rank = BoardHelper.getRank(srcPos);
@@ -587,6 +597,24 @@ public class BoardMap implements Cloneable {
             }
         }
         if(!verify) {
+            // promotion logic
+            // TODO: Ask what piece to move
+            if(this.color == WHITE && destRank == 7) {
+                long mask = getMask(srcPos);
+                long clearMask = getMask(destPos);
+                clear(PAWN, mask);
+                retain(QUEEN, clearMask);
+                enemyBoard.clear(destPiece & PIECE_MASK, clearMask);
+                return 2;
+            }
+            if(this.color == BLACK && destRank == 0) {
+                long mask = getMask(srcPos);
+                long clearMask = getMask(destPos);
+                clear(PAWN, mask);
+                retain(QUEEN, clearMask);
+                enemyBoard.clear(destPiece & PIECE_MASK, clearMask);
+                return 2;
+            }
             // A patch for when a pawn changes file on its next move
             if(BoardHelper.getRank(srcPos) == (this.color == WHITE ? 1 : 6)) {
                 pawnAdvance &= ~getByteMask(file);
@@ -767,7 +795,11 @@ public class BoardMap implements Cloneable {
      * attack mask
      */
     public boolean inCheck() {
-        return ((king & ~this.getAttackMask(enemyBoard.color, this.king)) == 0);
+        return ((king & ~this.getAttackMask(enemyBoard.color)) == 0);
+    }
+
+    public CheckMethod getCheckMethod() {
+        return checkMethod;
     }
 
     /**
@@ -786,7 +818,7 @@ public class BoardMap implements Cloneable {
             int piece = map.getSelfPieceAt(i, false);
             if(color != side) continue;
             if(Piece.isSlidingPiece(piece)) {
-                ll |= Bits.getRayAttack(blockers, i, piece);
+                ll |= Bits.getRayAttackMagic(blockers, i, piece);
             } else {
                 ll |= AttackTable.getMaskAt(piece, i);
             }
