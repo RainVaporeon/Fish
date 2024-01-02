@@ -38,6 +38,10 @@ public class MoveGenerator {
         this.cursor = 0;
     }
 
+    /**
+     * Gets all valid moves
+     * @return
+     */
     public List<Move> getAllValidMoves() {
         List<Move> totalMoves = new LinkedList<>();
         for(int i = 0; i < 64; i++) {
@@ -47,9 +51,15 @@ public class MoveGenerator {
     }
 
     public List<Move> getValidMovesFor(int index) {
-        return getValidMovesFor(index, true);
+        return getValidMovesFor(index, bitboard.getCheckMethod().useBits());
     }
 
+    /**
+     * Gets all valid moves for the given index
+     * @param index the index
+     * @param bits whether to use bitboard approach
+     * @return a list of possible moves
+     */
     public List<Move> getValidMovesFor(int index, boolean bits) {
         if(bits) {
             int piece = bitboard.getPieceAt(index);
