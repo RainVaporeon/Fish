@@ -3,8 +3,10 @@ package com.spiritlight.chess.fish.internal.utils;
 import com.spiritlight.chess.fish.game.Piece;
 import com.spiritlight.chess.fish.game.utils.board.AttackTable;
 import com.spiritlight.chess.fish.game.utils.board.Magic;
-import com.spiritlight.chess.fish.internal.InternLogger;
 import com.spiritlight.fishutils.collections.IntList;
+
+import static com.spiritlight.chess.fish.game.Piece.BISHOP;
+import static com.spiritlight.chess.fish.game.Piece.ROOK;
 
 public class Bits {
     private static final double LOG_2 = Math.log(2);
@@ -21,10 +23,35 @@ public class Bits {
     }
 
     public static long getRayAttack(long blocking, int pos, int piece) {
-        if(Piece.is(piece, Piece.ROOK)) return getRookRay(blocking, pos);
+        if(Piece.is(piece, ROOK)) return getRookRay(blocking, pos);
         if(Piece.is(piece, Piece.BISHOP)) return getBishopRay(blocking, pos);
         if(Piece.is(piece, Piece.QUEEN)) return getQueenRay(blocking, pos);
         return 0;
+    }
+
+    public static long getRayAttackMagic(long blocking, int pos, int piece) {
+        if(Piece.is(piece, ROOK)) return getRookRayMagic(blocking, pos);
+        if(Piece.is(piece, Piece.BISHOP)) return getBishopRayMagic(blocking, pos);
+        if(Piece.is(piece, Piece.QUEEN)) return getQueenRayMagic(blocking, pos);
+        return 0;
+    }
+
+    private static long getRookRayMagic(long blocking, int pos) {
+        long attack = AttackTable.getDirect(ROOK, pos);
+        long magic = Magic.get(ROOK, pos);
+        int shiftCount = 64 - Long.bitCount(magic);
+        return ((attack & blocking) * magic) >> shiftCount;
+    }
+
+    private static long getBishopRayMagic(long blocking, int pos) {
+        long attack = AttackTable.getDirect(BISHOP, pos);
+        long magic = Magic.get(BISHOP, pos);
+        int shiftCount = 64 - Long.bitCount(magic);
+        return ((attack & blocking) * magic) >> shiftCount;
+    }
+
+    private static long getQueenRayMagic(long blocking, int pos) {
+        return getRookRayMagic(blocking, pos) | getBishopRayMagic(blocking, pos);
     }
 
     private static long getRookRay(long blocking, int pos) {
@@ -56,7 +83,6 @@ public class Bits {
     }
 
     private static long getQueenRay(long blocking, int pos) {
-        InternLogger.getLogger().debug(STR."bishop ray: \{Magic.visualize(getBishopRay(blocking, pos))}");
         return getBishopRay(blocking, pos) | getRookRay(blocking, pos);
     }
 

@@ -3,6 +3,10 @@ package com.spiritlight.chess.fish.game.utils.board;
 import com.spiritlight.chess.fish.game.Piece;
 import com.spiritlight.fishutils.misc.arrays.primitive.LongArray;
 
+// TODO: For each touching square (see: Piece), see the corresponding
+// TODO: masks that are not touching the same side and clear the attacks
+// TODO: from those squares, and then multiply by magic and shift the
+// TODO: required bits to find the valid squares this may go to
 public class Magic {
     private static final long[] ROOK_MAGIC = {
             0xc80001828100040L,

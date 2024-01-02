@@ -194,13 +194,16 @@ public class AttackTable {
      * method in comparison to {@link AttackTable#get(int)}
      */
     public static long getDirect(int piece, int position) {
-        return switch (piece) {
+        return switch (piece & PIECE_MASK) {
             case QUEEN -> directQueen[position];
             case ROOK -> directRook[position];
             case BISHOP -> directBishop[position];
             case KNIGHT -> directKnight[position];
             case KING -> directKing[position];
             default -> 0;
+            // TODO: Pawns do not have a mask here, and may be used
+            // TODO: for check detection, causing an issue where
+            // TODO: pawns giving check can be ignored.
         };
     }
 
