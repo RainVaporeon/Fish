@@ -759,12 +759,12 @@ public class BoardMap implements Cloneable {
                 if(!shouldAttempt) return true;
                 this.king = this.king << 2;
                 this.clear(ROOK, K_PRESERVE_MASK);
-                this.retain(ROOK, this.king >> 1);
+                this.retain(ROOK, this.king >>> 1);
             } else {
                 if((WHITE_CASTLE_Q_ATTACKER_MASK & ~enemyAttackMask) == 0 || this.inCheck()) return false; // bit cleared; square was attacked (or in check)
                 if((WHITE_CASTLE_Q_BLOCKER_MASK & this.getBlockers()) != 0) return false; // has blockers
                 if(!shouldAttempt) return true;
-                this.king = this.king >> 2;
+                this.king = this.king >>> 2;
                 this.clear(ROOK, Q_PRESERVE_MASK);
                 this.retain(ROOK, this.king << 1);
             }
@@ -776,12 +776,12 @@ public class BoardMap implements Cloneable {
                 if(!shouldAttempt) return true;
                 this.king = this.king << 2;
                 this.clear(ROOK, BLACK_K_PRESERVE_MASK);
-                this.retain(ROOK, this.king >> 1);
+                this.retain(ROOK, this.king >>> 1);
             } else {
                 if((BLACK_CASTLE_Q_ATTACKER_MASK & ~enemyAttackMask) == 0 || this.inCheck()) return false; // bit cleared; square was attacked (or in check)
                 if((BLACK_CASTLE_Q_BLOCKER_MASK & this.getBlockers()) != 0) return false; // has blockers
                 if(!shouldAttempt) return true;
-                this.king = this.king >> 2;
+                this.king = this.king >>> 2;
                 this.clear(ROOK, BLACK_Q_PRESERVE_MASK);
                 this.retain(ROOK, this.king << 1);
             }

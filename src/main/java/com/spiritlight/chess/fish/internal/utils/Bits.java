@@ -40,14 +40,14 @@ public class Bits {
         long attack = AttackTable.getDirect(ROOK, pos);
         long magic = Magic.get(ROOK, pos);
         int shiftCount = 64 - Long.bitCount(magic);
-        return ((attack & blocking) * magic) >> shiftCount;
+        return ((attack & blocking) * magic) >>> shiftCount;
     }
 
     private static long getBishopRayMagic(long blocking, int pos) {
         long attack = AttackTable.getDirect(BISHOP, pos);
         long magic = Magic.get(BISHOP, pos);
         int shiftCount = 64 - Long.bitCount(magic);
-        return ((attack & blocking) * magic) >> shiftCount;
+        return ((attack & blocking) * magic) >>> shiftCount;
     }
 
     private static long getQueenRayMagic(long blocking, int pos) {

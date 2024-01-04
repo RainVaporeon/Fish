@@ -26,7 +26,7 @@ public class BitboardMask {
      * @return the mask
      */
     public static long getForwardMask(int rank, boolean backwards) {
-        if(backwards) return -1L >> (8 * rank - 1);
+        if(backwards) return -1L >>> (8 * rank - 1);
         return -1L << (8 * rank + 1);
     }
 }
