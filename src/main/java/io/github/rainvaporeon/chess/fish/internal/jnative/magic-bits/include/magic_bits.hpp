@@ -9,6 +9,16 @@
 #include <functional>
 #include <vector>
 
+/*
+ * START OF EDIT
+ *
+ * This file is obtained from goutham/magic-bits, all rights to the creator.
+ *
+ * For any takedown requests regarding this particular file, please contact me.
+ *
+ * END OF EDIT
+ */
+
 namespace magic_bits {
 
 // A class for generating attack bitboards for sliding pieces (queen, rook, bishop) using magic

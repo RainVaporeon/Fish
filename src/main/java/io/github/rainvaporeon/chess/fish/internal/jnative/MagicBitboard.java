@@ -4,16 +4,42 @@
  */
 package io.github.rainvaporeon.chess.fish.internal.jnative;
 
+import java.io.*;
+
 public class MagicBitboard {
 
     static {
-        /* Load the native library */
+        File tmp = new File(new File(System.getProperty("java.io.tmpdir")), "native_mbb.dll");
+        InputStream stream = MagicBitboard.class.getResourceAsStream("/native/native_mbb.dll");
+        try (FileOutputStream fos = new FileOutputStream(tmp)) {
+            fos.write(stream.readAllBytes());
+            stream.close();
+        } catch (IOException ex) {
+            throw new UncheckedIOException(ex);
+        }
+
+        System.loadLibrary(tmp.getAbsolutePath());
     }
 
-    public native long queen(long blockers, int pos);
+    public static long getQueen(long blockers, int pos) {
+        if(pos < 0 || pos >= 64) throw new IndexOutOfBoundsException(pos);
+        return queen(blockers, pos);
+    }
 
-    public native long rook(long blockers, int pos);
+    public static long getRook(long blockers, int pos) {
+        if(pos < 0 || pos >= 64) throw new IndexOutOfBoundsException(pos);
+        return rook(blockers, pos);
+    }
 
-    public native long bishop(long blockers, int pos);
+    public static long getBishop(long blockers, int pos) {
+        if(pos < 0 || pos >= 64) throw new IndexOutOfBoundsException(pos);
+        return bishop(blockers, pos);
+    }
+
+    private static native long queen(long blockers, int pos);
+
+    private static native long rook(long blockers, int pos);
+
+    private static native long bishop(long blockers, int pos);
 
 }

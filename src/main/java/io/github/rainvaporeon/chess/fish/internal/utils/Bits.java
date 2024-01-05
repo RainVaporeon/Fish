@@ -4,12 +4,19 @@ import io.github.rainvaporeon.chess.fish.game.Piece;
 import io.github.rainvaporeon.chess.fish.game.utils.board.AttackTable;
 import io.github.rainvaporeon.chess.fish.game.utils.board.Magic;
 import com.spiritlight.fishutils.collections.IntList;
+import io.github.rainvaporeon.chess.fish.internal.jnative.MagicBitboard;
 
 import static io.github.rainvaporeon.chess.fish.game.Piece.BISHOP;
 import static io.github.rainvaporeon.chess.fish.game.Piece.ROOK;
 
 public class Bits {
     private static final double LOG_2 = Math.log(2);
+
+    private enum Type {
+        NATIVE, SELF
+    }
+
+    private static final Type type = Type.NATIVE;
 
     public static int[] bitList(long value) {
         IntList list = new IntList(8);
@@ -37,6 +44,7 @@ public class Bits {
     }
 
     private static long getRookRayMagic(long blocking, int pos) {
+        if(type == Type.NATIVE) return MagicBitboard.getRook(blocking, pos);
         long attack = AttackTable.getDirect(ROOK, pos);
         long magic = Magic.get(ROOK, pos);
         int shiftCount = 64 - Long.bitCount(magic);
@@ -44,6 +52,7 @@ public class Bits {
     }
 
     private static long getBishopRayMagic(long blocking, int pos) {
+        if(type == Type.NATIVE) return MagicBitboard.getBishop(blocking, pos);
         long attack = AttackTable.getDirect(BISHOP, pos);
         long magic = Magic.get(BISHOP, pos);
         int shiftCount = 64 - Long.bitCount(magic);
@@ -51,6 +60,7 @@ public class Bits {
     }
 
     private static long getQueenRayMagic(long blocking, int pos) {
+        if(type == Type.NATIVE) return MagicBitboard.getQueen(blocking, pos);
         return getRookRayMagic(blocking, pos) | getBishopRayMagic(blocking, pos);
     }
 
