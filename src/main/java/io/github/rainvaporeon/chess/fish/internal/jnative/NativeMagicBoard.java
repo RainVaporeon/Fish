@@ -6,19 +6,19 @@ package io.github.rainvaporeon.chess.fish.internal.jnative;
 
 import java.io.*;
 
-public class MagicBitboard {
+public class NativeMagicBoard {
 
     static {
         File tmp = new File(new File(System.getProperty("java.io.tmpdir")), "native_mbb.dll");
-        InputStream stream = MagicBitboard.class.getResourceAsStream("/native/native_mbb.dll");
+        InputStream stream = NativeMagicBoard.class.getResourceAsStream("/native/native_mbb.dll");
         try (FileOutputStream fos = new FileOutputStream(tmp)) {
             fos.write(stream.readAllBytes());
             stream.close();
         } catch (IOException ex) {
             throw new UncheckedIOException(ex);
         }
-
         System.loadLibrary(tmp.getAbsolutePath());
+        tmp.deleteOnExit();
     }
 
     public static long getQueen(long blockers, int pos) {

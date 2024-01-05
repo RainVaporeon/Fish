@@ -1,7 +1,6 @@
 package io.github.rainvaporeon.chess.fish.game.utils.board;
 
 import io.github.rainvaporeon.chess.fish.game.Piece;
-import io.github.rainvaporeon.chess.fish.internal.InternLogger;
 import com.spiritlight.fishutils.collections.IntList;
 import com.spiritlight.fishutils.misc.arrays.primitive.LongArray;
 
@@ -84,15 +83,17 @@ public class AttackTable {
     }
 
     private static long[] populateDiagonal(int offset) {
+        long edge = BOTTOM_BORDER_MASK | TOP_BORDER_MASK | LEFT_BORDER_MASK | RIGHT_BORDER_MASK;
         long[] array = new long[64];
         for(int i = 0; i < 64; i++) {
-            array[i] = getDiagonalSliding(i, offset);
+            array[i] = getDiagonalSliding(i, offset) & ~edge;
         }
         return array;
     }
 
     private static long getDiagonalSliding(int pos, int offset) {
         int idx = 1; // Starting at 1 excludes itself
+
         int file = BoardHelper.getFile(pos);
         int rank = BoardHelper.getRank(pos);
         IntList list = new IntList(8);
@@ -130,22 +131,36 @@ public class AttackTable {
 
     // what's the opposite of diagonal? PR for the correct name
     private static long[] populateStraight(int offset) {
+        long startingPos = 1L << offset;
+        long edgeMask = 0;
+
+        if((startingPos & TOP_BORDER_MASK) != 0) edgeMask |= TOP_BORDER_MASK;
+        if((startingPos & BOTTOM_BORDER_MASK) != 0) edgeMask |= BOTTOM_BORDER_MASK;
+        if((startingPos & LEFT_BORDER_MASK) != 0) edgeMask |= LEFT_BORDER_MASK;
+        if((startingPos & RIGHT_BORDER_MASK) != 0) edgeMask |= RIGHT_BORDER_MASK;
+
         long[] array = new long[64];
         for(int i = 0; i < 64; i++) {
-            int index = i + offset;
-            int initialFile = BoardHelper.getFile(index);
-            int initialRank = BoardHelper.getRank(index);
-            long mask = 0;
-
-            while(index >= 0 && index < 64 && // within bounds, or the index stays consistent to rank/index
-                    (BoardHelper.getFile(index) == initialFile || BoardHelper.getRank(index) == initialRank)) {
-                long l = 1L << index;
-                mask |= l;
-                index += offset;
-            }
+            final long mask = getRookAttackMask(offset, i, edgeMask);
             array[i] = mask;
         }
         return array;
+    }
+
+    private static long getRookAttackMask(int offset, int i, long edgeMask) {
+        int index = i + offset;
+        int initialFile = BoardHelper.getFile(index);
+        int initialRank = BoardHelper.getRank(index);
+        long mask = 0;
+
+        while(index >= 0 && index < 64 && // within bounds, or the index stays consistent to rank/index
+                (BoardHelper.getFile(index) == initialFile || BoardHelper.getRank(index) == initialRank)) {
+            long l = 1L << index;
+            mask |= l;
+            index += offset;
+        }
+        mask &= ~edgeMask;
+        return mask;
     }
 
     private static final LongArray EMPTY = new LongArray(new long[64]);

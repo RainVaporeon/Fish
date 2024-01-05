@@ -4,7 +4,7 @@ import io.github.rainvaporeon.chess.fish.game.Piece;
 import io.github.rainvaporeon.chess.fish.game.utils.board.AttackTable;
 import io.github.rainvaporeon.chess.fish.game.utils.board.Magic;
 import com.spiritlight.fishutils.collections.IntList;
-import io.github.rainvaporeon.chess.fish.internal.jnative.MagicBitboard;
+import io.github.rainvaporeon.chess.fish.internal.jnative.NativeMagicBoard;
 
 import static io.github.rainvaporeon.chess.fish.game.Piece.BISHOP;
 import static io.github.rainvaporeon.chess.fish.game.Piece.ROOK;
@@ -44,7 +44,7 @@ public class Bits {
     }
 
     private static long getRookRayMagic(long blocking, int pos) {
-        if(type == Type.NATIVE) return MagicBitboard.getRook(blocking, pos);
+        if(type == Type.NATIVE) return NativeMagicBoard.getRook(blocking, pos);
         long attack = AttackTable.getDirect(ROOK, pos);
         long magic = Magic.get(ROOK, pos);
         int shiftCount = 64 - Long.bitCount(magic);
@@ -52,7 +52,7 @@ public class Bits {
     }
 
     private static long getBishopRayMagic(long blocking, int pos) {
-        if(type == Type.NATIVE) return MagicBitboard.getBishop(blocking, pos);
+        if(type == Type.NATIVE) return NativeMagicBoard.getBishop(blocking, pos);
         long attack = AttackTable.getDirect(BISHOP, pos);
         long magic = Magic.get(BISHOP, pos);
         int shiftCount = 64 - Long.bitCount(magic);
@@ -60,11 +60,11 @@ public class Bits {
     }
 
     private static long getQueenRayMagic(long blocking, int pos) {
-        if(type == Type.NATIVE) return MagicBitboard.getQueen(blocking, pos);
+        if(type == Type.NATIVE) return NativeMagicBoard.getQueen(blocking, pos);
         return getRookRayMagic(blocking, pos) | getBishopRayMagic(blocking, pos);
     }
 
-    private static long getRookRay(long blocking, int pos) {
+    public static long getRookRay(long blocking, int pos) {
         long N = AttackTable.getRay(pos, AttackTable.NORTH);
         long E = AttackTable.getRay(pos, AttackTable.EAST);
         long S = AttackTable.getRay(pos, AttackTable.SOUTH);
@@ -78,7 +78,7 @@ public class Bits {
         return (N ^ filteredMaskN) | (S ^ filteredMaskS) | (E ^ filteredMaskE) | (W | filteredMaskW);
     }
 
-    private static long getBishopRay(long blocking, int pos) {
+    public static long getBishopRay(long blocking, int pos) {
         long NE = AttackTable.getRay(pos, AttackTable.NORTHEAST);
         long NW = AttackTable.getRay(pos, AttackTable.NORTHWEST);
         long SE = AttackTable.getRay(pos, AttackTable.SOUTHEAST);
@@ -92,7 +92,7 @@ public class Bits {
         return (NE ^ filteredMaskNE) | (NW ^ filteredMaskNW) | (SE ^ filteredMaskSE) | (SW | filteredMaskSW);
     }
 
-    private static long getQueenRay(long blocking, int pos) {
+    public static long getQueenRay(long blocking, int pos) {
         return getBishopRay(blocking, pos) | getRookRay(blocking, pos);
     }
 

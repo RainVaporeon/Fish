@@ -1,5 +1,6 @@
 package io.github.rainvaporeon.chess.fish;
 
+import io.github.rainvaporeon.chess.fish.game.utils.board.BoardMap;
 import io.github.rainvaporeon.chess.fish.game.utils.board.Magic;
 import io.github.rainvaporeon.chess.fish.internal.InternLogger;
 import io.github.rainvaporeon.chess.fish.internal.exceptions.SystemError;

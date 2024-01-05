@@ -1,5 +1,8 @@
 #include "magic-bits/include/magic_bits.hpp"
 #include "jni.h"
+
+const magic_bits::Attacks attacks = magic_bits::Attacks();
+
 /*
  * Class:     io_github_rainvaporeon_chess_fish_internal_jnative_MagicBitboard
  * Method:    queen
@@ -7,7 +10,7 @@
  */
 JNIEXPORT jlong JNICALL Java_io_github_rainvaporeon_chess_fish_internal_jnative_MagicBitboard_queen
         (JNIEnv *, jclass, jlong blockers, jint pos) {
-    return magic_bits::Attacks().Queen(blockers, pos);
+    return attacks.Queen(blockers, pos);
 }
 
 /*
@@ -17,7 +20,7 @@ JNIEXPORT jlong JNICALL Java_io_github_rainvaporeon_chess_fish_internal_jnative_
  */
 JNIEXPORT jlong JNICALL Java_io_github_rainvaporeon_chess_fish_internal_jnative_MagicBitboard_rook
         (JNIEnv *, jclass, jlong blockers, jint pos) {
-    return magic_bits::Attacks().Rook(blockers, pos);
+    return attacks.Rook(blockers, pos);
 }
 
 /*
@@ -27,5 +30,5 @@ JNIEXPORT jlong JNICALL Java_io_github_rainvaporeon_chess_fish_internal_jnative_
  */
 JNIEXPORT jlong JNICALL Java_io_github_rainvaporeon_chess_fish_internal_jnative_MagicBitboard_bishop
         (JNIEnv *, jclass, jlong blockers, jint pos) {
-    return magic_bits::Attacks().Bishop(blockers, pos);
+    return attacks.Bishop(blockers, pos);
 }
