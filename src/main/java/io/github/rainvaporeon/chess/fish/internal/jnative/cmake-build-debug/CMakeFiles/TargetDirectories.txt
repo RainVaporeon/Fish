@@ -1,0 +1,3 @@
+C:/Users/Administrator/Desktop/Java Workspace/Fish/src/main/java/com/spiritlight/chess/fish/internal/jnative/cmake-build-debug/CMakeFiles/jnative.dir
+C:/Users/Administrator/Desktop/Java Workspace/Fish/src/main/java/com/spiritlight/chess/fish/internal/jnative/cmake-build-debug/CMakeFiles/edit_cache.dir
+C:/Users/Administrator/Desktop/Java Workspace/Fish/src/main/java/com/spiritlight/chess/fish/internal/jnative/cmake-build-debug/CMakeFiles/rebuild_cache.dir
