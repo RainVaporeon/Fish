@@ -6,6 +6,6 @@ set(CMAKE_C_STANDARD 17)
 include_directories(.)
 
 add_executable(jnative
-        io_github_rainvaporeon_chess_fish_internal_jnative_MagicBitboard.h
         magic-bits/include/magic_bits.hpp
-        io_github_rainvaporeon_chess_fish_internal_jnative_MagicBitboard.cpp)
+        io_github_rainvaporeon_chess_fish_internal_jnative_NativeMagicBoard.cpp
+        io_github_rainvaporeon_chess_fish_internal_jnative_NativeMagicBoard.h)

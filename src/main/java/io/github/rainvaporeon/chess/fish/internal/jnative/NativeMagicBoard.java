@@ -17,7 +17,7 @@ public class NativeMagicBoard {
         } catch (IOException ex) {
             throw new UncheckedIOException(ex);
         }
-        System.loadLibrary(tmp.getAbsolutePath());
+        System.load(tmp.getAbsolutePath());
         tmp.deleteOnExit();
     }
 

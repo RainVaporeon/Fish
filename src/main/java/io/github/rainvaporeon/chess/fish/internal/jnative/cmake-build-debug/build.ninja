@@ -49,8 +49,8 @@ cmake_ninja_workdir = C$:/Users/Administrator/Desktop/Java$ Workspace/Fish/src/m
 
 build cmake_object_order_depends_target_jnative: phony || CMakeFiles/jnative.dir
 
-build CMakeFiles/jnative.dir/io_github_rainvaporeon_chess_fish_internal_jnative_MagicBitboard.cpp.obj: CXX_COMPILER__jnative_unscanned_Debug C$:/Users/Administrator/Desktop/Java$ Workspace/Fish/src/main/java/io/github/rainvaporeon/chess/fish/internal/jnative/io_github_rainvaporeon_chess_fish_internal_jnative_MagicBitboard.cpp || cmake_object_order_depends_target_jnative
-  DEP_FILE = CMakeFiles\jnative.dir\io_github_rainvaporeon_chess_fish_internal_jnative_MagicBitboard.cpp.obj.d
+build CMakeFiles/jnative.dir/io_github_rainvaporeon_chess_fish_internal_jnative_NativeMagicBoard.cpp.obj: CXX_COMPILER__jnative_unscanned_Debug C$:/Users/Administrator/Desktop/Java$ Workspace/Fish/src/main/java/io/github/rainvaporeon/chess/fish/internal/jnative/io_github_rainvaporeon_chess_fish_internal_jnative_NativeMagicBoard.cpp || cmake_object_order_depends_target_jnative
+  DEP_FILE = CMakeFiles\jnative.dir\io_github_rainvaporeon_chess_fish_internal_jnative_NativeMagicBoard.cpp.obj.d
   FLAGS = -g -fdiagnostics-color=always
   INCLUDES = -I"C:/Users/Administrator/Desktop/Java Workspace/Fish/src/main/java/io/github/rainvaporeon/chess/fish/internal/jnative/."
   OBJECT_DIR = CMakeFiles\jnative.dir
@@ -64,7 +64,7 @@ build CMakeFiles/jnative.dir/io_github_rainvaporeon_chess_fish_internal_jnative_
 #############################################
 # Link the executable jnative.exe
 
-build jnative.exe: CXX_EXECUTABLE_LINKER__jnative_Debug CMakeFiles/jnative.dir/io_github_rainvaporeon_chess_fish_internal_jnative_MagicBitboard.cpp.obj
+build jnative.exe: CXX_EXECUTABLE_LINKER__jnative_Debug CMakeFiles/jnative.dir/io_github_rainvaporeon_chess_fish_internal_jnative_NativeMagicBoard.cpp.obj
   FLAGS = -g
   LINK_LIBRARIES = -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32
   OBJECT_DIR = CMakeFiles\jnative.dir

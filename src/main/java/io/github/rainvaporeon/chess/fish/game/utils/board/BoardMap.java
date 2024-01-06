@@ -13,7 +13,6 @@ import io.github.rainvaporeon.chess.fish.internal.annotation.MaskType;
 import io.github.rainvaporeon.chess.fish.internal.exceptions.SystemError;
 import io.github.rainvaporeon.chess.fish.internal.utils.Bits;
 import com.spiritlight.fishutils.collections.Pair;
-import com.spiritlight.fishutils.logging.ILogger;
 import com.spiritlight.fishutils.misc.annotations.Modifies;
 
 import java.lang.annotation.*;
@@ -307,7 +306,7 @@ public class BoardMap implements Cloneable {
      * Gets all pieces mapped to a 64-bit value.
      * @return
      */
-    public long getBlocker() {
+    public long getSelfBlocker() {
         return pawn | bishop | knight | rook | queen | king;
     }
 
@@ -316,7 +315,7 @@ public class BoardMap implements Cloneable {
      * @return
      */
     public long getBlockers() {
-        return this.getBlocker() | this.getEnemyBoard().getBlocker();
+        return this.getSelfBlocker() | this.getEnemyBoard().getSelfBlocker();
     }
 
     public boolean canMove(int srcPos, int destPos) {
@@ -716,7 +715,7 @@ public class BoardMap implements Cloneable {
             for(int i : VALID_OFFSETS) {
                 if(srcPos - destPos == i) {
                     // if 0, means the destination got cleared by the attack mask, hence illegal
-                    return (BoardMap.getMask(destPos) & ~this.getAttackMask(this.getEnemyBoard().color)) != 0 ? 0 : MovementEvent.REVEALS_CHECK.code();
+                    return (BoardMap.getMask(destPos) & ~enemyBoard.getAttackMask()) != 0 ? 0 : MovementEvent.REVEALS_CHECK.code();
                 }
             }
             return MovementEvent.ILLEGAL.code();
@@ -727,7 +726,7 @@ public class BoardMap implements Cloneable {
         int destRank = BoardHelper.getRank(destPos);
         if(Math.abs(file - destFile) > 1) return MovementEvent.ILLEGAL.code();
         if(Math.abs(rank - destRank) > 1) return MovementEvent.ILLEGAL.code();
-        if(((1L << destPos) & ~this.getAttackMask(enemyBoard.color)) == 0) return MovementEvent.REVEALS_CHECK.code();
+        if(((1L << destPos) & ~this.getAttackMask()) == 0) return MovementEvent.REVEALS_CHECK.code();
         return 0;
     }
 
@@ -752,8 +751,8 @@ public class BoardMap implements Cloneable {
     @Special // Probably also the most bloated one
     private boolean doCastle(int side, boolean shouldAttempt) {
         if((this.castle & side) == 0) return false;
+        long enemyAttackMask = enemyBoard.getAttackMask();
         if(this.color == WHITE) {
-            long enemyAttackMask = this.getAttackMask(BLACK);
             if(side == CASTLE_K_MASK) {
                 if((WHITE_CASTLE_K_ATTACKER_MASK & ~enemyAttackMask) == 0 || this.inCheck()) return false; // bit cleared; square was attacked (or in check)
                 if((WHITE_CASTLE_K_BLOCKER_MASK & this.getBlockers()) != 0) return false; // has blockers
@@ -770,7 +769,6 @@ public class BoardMap implements Cloneable {
                 this.retain(ROOK, this.king << 1);
             }
         } else {
-            long enemyAttackMask = this.getAttackMask(WHITE);
             if(side == CASTLE_K_MASK) {
                 if((BLACK_CASTLE_K_ATTACKER_MASK & ~enemyAttackMask) == 0 || this.inCheck()) return false; // bit cleared; square was attacked (or in check)
                 if((BLACK_CASTLE_K_BLOCKER_MASK & this.getBlockers()) != 0) return false; // has blockers
@@ -796,7 +794,7 @@ public class BoardMap implements Cloneable {
      * attack mask
      */
     public boolean inCheck() {
-        return ((king & ~this.getAttackMask(enemyBoard.color)) == 0);
+        return ((king & ~enemyBoard.getAttackMask()) == 0);
     }
 
     public CheckMethod getCheckMethod() {
@@ -804,21 +802,17 @@ public class BoardMap implements Cloneable {
     }
 
     /**
-     * Gets all the current attacked squares for given side
-     * @param side the side
+     * Gets all the current squares this board can attack
      * @return the attack mask
      */
-    private long getAttackMask(int side) {
+    private long getAttackMask() {
         long ll = 0L;
         long blockers = this.getBlockers();
-        BoardMap map = side == this.color ? this : enemyBoard;
-        long captureClearMask = map.getBlocker();
+        long captureClearMask = this.getSelfBlocker();
         for(int i = 0; i < 64; i++) {
-            int piece = map.getSelfPieceAt(i, false);
-            long maskedBlocker = blockers & Bits.getRayAttack(i, piece);
-            if(color != side) continue;
+            int piece = this.getSelfPieceAt(i, false);
             if(Piece.isSlidingPiece(piece)) {
-                ll |= Bits.getRayAttackMagic(maskedBlocker, i, piece) & ~captureClearMask;
+                ll |= Bits.getRayAttackMagic(blockers, i, piece) & ~captureClearMask;
             } else {
                 ll |= AttackTable.getMaskAt(piece, i);
             }

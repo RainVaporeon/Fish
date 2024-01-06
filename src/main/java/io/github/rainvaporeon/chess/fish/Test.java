@@ -11,6 +11,7 @@ import io.github.rainvaporeon.chess.fish.game.utils.game.BoardEvaluator;
 import io.github.rainvaporeon.chess.fish.game.utils.game.Move;
 import io.github.rainvaporeon.chess.fish.game.utils.game.MovementEvent;
 import io.github.rainvaporeon.chess.fish.internal.InternLogger;
+import io.github.rainvaporeon.chess.fish.internal.jnative.NativeMagicBoard;
 import io.github.rainvaporeon.chess.fish.internal.utils.Bits;
 import io.github.rainvaporeon.chess.fish.internal.utils.board.GameBitboard;
 import io.github.rainvaporeon.chess.fish.internal.utils.resources.Resources;
@@ -21,6 +22,7 @@ import com.spiritlight.fishutils.utils.Stopwatch;
 
 import java.util.Arrays;
 import java.util.Objects;
+import java.util.Random;
 import java.util.function.BooleanSupplier;
 import java.util.stream.StreamSupport;
 
@@ -90,8 +92,33 @@ public class Test {
         timer.fence("map.castles");
         testCastle();
         timer.record("map.castles");
+        timer.fence("magic.dump");
+        dumpMagic();
+        timer.record("magic.dump");
         System.out.println(timer.getRecordString());
         System.out.println("All test case passed! Congratulations!");
+    }
+
+    private static long genRandomLongBits(int minBits, int maxBits) {
+        Random random = new Random();
+        long l = random.nextLong();
+        while(Long.bitCount(l) < minBits || Long.bitCount(l) > maxBits) l = random.nextLong();
+        return l;
+    }
+
+    private static void dumpMagic() {
+        for(int i = 0; i < 64; i++) {
+            long blockerPattern = genRandomLongBits(8, 16);
+            System.out.println("Blocker pattern:");
+            System.out.println(Magic.visualize(blockerPattern));
+            System.out.println("Queen:");
+            System.out.println(Magic.visualize(NativeMagicBoard.getQueen(blockerPattern, i)));
+            System.out.println("Bishop:");
+            System.out.println(Magic.visualize(NativeMagicBoard.getBishop(blockerPattern, i)));
+            System.out.println("Rook:");
+            System.out.println(Magic.visualize(NativeMagicBoard.getRook(blockerPattern, i)));
+
+        }
     }
 
     private static void testCastle() {
