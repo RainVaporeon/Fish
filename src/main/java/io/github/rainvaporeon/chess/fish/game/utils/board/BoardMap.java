@@ -27,10 +27,12 @@ import static io.github.rainvaporeon.chess.fish.game.utils.GameConstants.*;
 import static io.github.rainvaporeon.chess.fish.game.utils.game.Move.BACKWARD_OFFSET;
 import static io.github.rainvaporeon.chess.fish.game.utils.game.Move.FORWARD_OFFSET;
 
-// TODO: Separate en passant masks again, may need to modify FEN
-// TODO: or not allow piece to capture same type on en passant
-
-// TODO: Add castling to King moves.
+// TODO: It is possible to capture pieces into getting checked.
+// TODO 2: It is possible for some checks (probably pawn) to only
+// TODO    permit captures/moves from king and not other pieces that
+// TODO    are capable of capturing the checking piece.
+// TODO 3: It is possible that the checking piece cannot be captured
+// TODO    by other pieces that aren't the King. Needs further investigation.
 public class BoardMap implements Cloneable {
     private static final long PAWN_MASK   = 0xFF00;
     private static final long BISHOP_MASK = 0b00100100;
