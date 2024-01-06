@@ -420,8 +420,8 @@ public class BoardMap implements Cloneable {
             case KING -> verifyKing(srcPos, destPos, true);
             default -> throw new IllegalStateException(STR."Unexpected value: \{srcPiece & ~COLOR_MASK}");
         };
-        boolean castleFlag = handlerCode == 1;
-        boolean promoFlag = handlerCode == 2;
+        boolean castleFlag = handlerCode == CASTLE_FLAG;
+        boolean promoFlag = handlerCode == PROMOTION_FLAG;
         MovementEvent error = translate(handlerCode);
         // error.code() & 0x07 is not 0
         if(error != null && !forced) return error;
@@ -605,7 +605,7 @@ public class BoardMap implements Cloneable {
                 clear(PAWN, mask);
                 retain(QUEEN, clearMask);
                 enemyBoard.clear(destPiece & PIECE_MASK, clearMask);
-                return 2;
+                return PROMOTION_FLAG;
             }
             if(this.color == BLACK && destRank == 0) {
                 long mask = getMask(srcPos);
@@ -613,7 +613,7 @@ public class BoardMap implements Cloneable {
                 clear(PAWN, mask);
                 retain(QUEEN, clearMask);
                 enemyBoard.clear(destPiece & PIECE_MASK, clearMask);
-                return 2;
+                return PROMOTION_FLAG;
             }
             // A patch for when a pawn changes file on its next move
             if(BoardHelper.getRank(srcPos) == (this.color == WHITE ? 1 : 6)) {
@@ -625,7 +625,8 @@ public class BoardMap implements Cloneable {
 
     private int verifyKnight(int srcPos, int destPos) {
         if(this.checkMethod.useBits()) {
-            return (BoardMap.getMask(destPos) & (AttackTable.getMaskAt(KNIGHT, srcPos) & ~this.mergePieceMask())) == 0 ? 0 : MovementEvent.ILLEGAL.code();
+            if(destPos == 0) return this.getSelfPieceAt(destPos, false) == 0 ? 0 : MovementEvent.ILLEGAL.code();
+            return (BoardMap.getMask(destPos) & (AttackTable.getMaskAt(KNIGHT, srcPos) & ~this.getBlockers())) == 0 ? 0 : MovementEvent.ILLEGAL.code();
         }
         // Honestly somewhat easy to check on this one
         // as knights skip over pieces
@@ -708,7 +709,7 @@ public class BoardMap implements Cloneable {
             if(!doCastle(kq, shouldCastle)) {
                 return MovementEvent.ILLEGAL.code();
             } else {
-                return 1;
+                return CASTLE_FLAG;
             }
         }
         if(this.checkMethod.useBits()) {
@@ -807,19 +808,17 @@ public class BoardMap implements Cloneable {
      * @param side the side
      * @return the attack mask
      */
-    private long getAttackMask(int side, long... blockerFilter) {
+    private long getAttackMask(int side) {
         long ll = 0L;
         long blockers = this.getBlockers();
-        long captureClearMask = this.color == side ? this.getBlocker() : enemyBoard.getBlocker();
-        if(blockerFilter != null) {
-            for(long l : blockerFilter) blockers &= ~l;
-        }
         BoardMap map = side == this.color ? this : enemyBoard;
+        long captureClearMask = map.getBlocker();
         for(int i = 0; i < 64; i++) {
             int piece = map.getSelfPieceAt(i, false);
+            long maskedBlocker = blockers & Bits.getRayAttack(i, piece);
             if(color != side) continue;
             if(Piece.isSlidingPiece(piece)) {
-                ll |= Bits.getRayAttackMagic(blockers, i, piece) & ~captureClearMask;
+                ll |= Bits.getRayAttackMagic(maskedBlocker, i, piece) & ~captureClearMask;
             } else {
                 ll |= AttackTable.getMaskAt(piece, i);
             }

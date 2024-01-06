@@ -6,6 +6,22 @@ package io.github.rainvaporeon.chess.fish.game.utils.game;
  * @param to the square to
  */
 public record Move(int from, int to) {
+    /**
+     * A collection of all possible moves (0-64)
+     * for faster access
+     */
+    static class MoveCache {
+        static final Move[][] moves;
+
+        static {
+            moves = new Move[64][64];
+            for(int i = 0; i < 64; i++) {
+                for(int j = 0; j < 64; j++) {
+                    moves[i][j] = new Move(i, j);
+                }
+            }
+        }
+    }
 
     // As we store this in a long usually, a rank forward
     // is 8 units, and a file forward is one unit.
@@ -15,19 +31,19 @@ public record Move(int from, int to) {
     public static final int RIGHT_OFFSET = 1;
 
     public Move up() {
-        return new Move(from, to + FORWARD_OFFSET);
+        return of(from, to + FORWARD_OFFSET);
     }
 
     public Move down() {
-        return new Move(from, to + BACKWARD_OFFSET);
+        return of(from, to + BACKWARD_OFFSET);
     }
 
     public Move left() {
-        return new Move(from, to + LEFT_OFFSET);
+        return of(from, to + LEFT_OFFSET);
     }
 
     public Move right() {
-        return new Move(from, to + RIGHT_OFFSET);
+        return of(from, to + RIGHT_OFFSET);
     }
 
     public int sourcePos() {
@@ -39,7 +55,7 @@ public record Move(int from, int to) {
     }
 
     public Move invert() {
-        return new Move(to, from);
+        return of(to, from);
     }
 
     /**
@@ -58,10 +74,13 @@ public record Move(int from, int to) {
         int toFile = to.charAt(0) - 'a';
         int toRank = to.charAt(1) - '1';
         int toPos = toFile + toRank * 8;
-        return new Move(fromPos, toPos);
+        return of(fromPos, toPos);
     }
 
     public static Move of(int from, int to) {
+        if(0 <= from && from < 64 && 0 <= to && to < 64) {
+            return MoveCache.moves[from][to];
+        }
         return new Move(from, to);
     }
 

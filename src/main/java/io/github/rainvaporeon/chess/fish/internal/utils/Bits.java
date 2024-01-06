@@ -4,13 +4,35 @@ import io.github.rainvaporeon.chess.fish.game.Piece;
 import io.github.rainvaporeon.chess.fish.game.utils.board.AttackTable;
 import io.github.rainvaporeon.chess.fish.game.utils.board.Magic;
 import com.spiritlight.fishutils.collections.IntList;
+import io.github.rainvaporeon.chess.fish.game.utils.game.Move;
 import io.github.rainvaporeon.chess.fish.internal.jnative.NativeMagicBoard;
 
-import static io.github.rainvaporeon.chess.fish.game.Piece.BISHOP;
-import static io.github.rainvaporeon.chess.fish.game.Piece.ROOK;
+import java.util.ArrayList;
+import java.util.List;
+
+import static io.github.rainvaporeon.chess.fish.game.Piece.*;
 
 public class Bits {
     private static final double LOG_2 = Math.log(2);
+    private static final long[] ROOK_RAY = new long[64];
+    private static final long[] BISHOP_RAY = new long[64];
+    private static final long[] QUEEN_RAY = new long[64];
+
+    static {
+        for(int i = 0; i < 64; i++) {
+            long N = AttackTable.getRay(i, AttackTable.NORTH);
+            long E = AttackTable.getRay(i, AttackTable.EAST);
+            long S = AttackTable.getRay(i, AttackTable.SOUTH);
+            long W = AttackTable.getRay(i, AttackTable.WEST);
+            long NE = AttackTable.getRay(i, AttackTable.NORTHEAST);
+            long NW = AttackTable.getRay(i, AttackTable.NORTHWEST);
+            long SE = AttackTable.getRay(i, AttackTable.SOUTHEAST);
+            long SW = AttackTable.getRay(i, AttackTable.SOUTHWEST);
+            ROOK_RAY[i] = N | E | S | W;
+            BISHOP_RAY[i] = NE | NW | SE | SW;
+            QUEEN_RAY[i] = N | E | S | W | NE | NW | SE | SW;
+        }
+    }
 
     private enum Type {
         NATIVE, SELF
@@ -29,10 +51,26 @@ public class Bits {
         return list.toIntArray();
     }
 
+    public static List<Move> convertBoardToMove(int src, long mask) {
+        List<Move> list = new ArrayList<>(Long.bitCount(mask));
+        for(int i = 0; i < 64; i++) {
+            long l = i == 0 ? 0 : 1L << (i - 1);
+            if((mask & l) != 0) list.add(Move.of(src, i));
+        }
+        return list;
+    }
+
     public static long getRayAttack(long blocking, int pos, int piece) {
         if(Piece.is(piece, ROOK)) return getRookRay(blocking, pos);
         if(Piece.is(piece, Piece.BISHOP)) return getBishopRay(blocking, pos);
         if(Piece.is(piece, Piece.QUEEN)) return getQueenRay(blocking, pos);
+        return 0;
+    }
+
+    public static long getRayAttack(int pos, int piece) {
+        if(Piece.is(piece, ROOK)) return ROOK_RAY[pos];
+        if(Piece.is(piece, BISHOP)) return BISHOP_RAY[pos];
+        if(Piece.is(piece, QUEEN)) return QUEEN_RAY[pos];
         return 0;
     }
 
