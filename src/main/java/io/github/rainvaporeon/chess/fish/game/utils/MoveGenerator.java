@@ -65,7 +65,7 @@ public class MoveGenerator {
             int piece = bitboard.getPieceAt(index);
             if(Piece.is(piece, PAWN)) return processPawn(index);
             if(Piece.is(piece, NONE)) return Collections.emptyList();
-            int[] possibleDestinations = Bits.bitList(AttackTable.getDirect(piece & PIECE_MASK, index));
+            int[] possibleDestinations = Bits.bitList(AttackTable.getDirect(piece, index));
             List<Move> moves = new LinkedList<>();
             for(int move : possibleDestinations) {
                 if(bitboard.canMove(index, move)) moves.add(Move.of(index, move));

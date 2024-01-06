@@ -5,6 +5,7 @@ import com.spiritlight.fishutils.collections.IntList;
 import com.spiritlight.fishutils.misc.arrays.primitive.LongArray;
 
 import static io.github.rainvaporeon.chess.fish.game.Piece.*;
+import static io.github.rainvaporeon.chess.fish.game.utils.game.Move.FORWARD_OFFSET;
 
 public class AttackTable {
     private static final LongArray knight;
@@ -12,6 +13,7 @@ public class AttackTable {
     private static final LongArray rook;
     private static final LongArray queen;
     private static final LongArray king;
+    private static final LongArray pawn;
 
     // N, NW, W, SW, S, SE, E, NE
     private static final int[] POSITION_OFFSETS = {8, 7, -1, -9, -8, -7, 1, 9};
@@ -28,7 +30,7 @@ public class AttackTable {
     private static final long[] rayE  = populateStraight(POSITION_OFFSETS[6]);
     private static final long[] rayNE = populateDiagonal(POSITION_OFFSETS[7]);
 
-    private static final long[] directKnight, directBishop, directRook, directQueen, directKing;
+    private static final long[] directPawn, directKnight, directBishop, directRook, directQueen, directKing;
 
     static {
         long[] R = new long[64];
@@ -45,6 +47,21 @@ public class AttackTable {
         for(int i = 0; i < 64; i++) {
             N[i] = setAll(Piece.getKnightAttackSquares(i));
         }
+
+        long[] P = new long[96];
+        for(int i = 8; i < 56; i++) {
+            long whiteMask = 0;
+            long blackMask;
+            int left = i - 1 + FORWARD_OFFSET;
+            int right = i + 1 + FORWARD_OFFSET;
+            if(BoardHelper.getRank(i) + 1 == BoardHelper.getRank(left)) whiteMask |= (1L << left);
+            if(BoardHelper.getRank(i) + 1 == BoardHelper.getRank(right)) whiteMask |= (1L << right);
+            blackMask = whiteMask >>> 16;
+            P[i - 8] = whiteMask;
+            P[i - 8 + 48] = blackMask;
+        }
+        pawn = LongArray.fromArray(P);
+        directPawn = P;
 
         final int[] kingOffsets = {1, -1, 7, -7, 9, -9, 8, -8};
         long[] K = new long[64];
@@ -178,6 +195,7 @@ public class AttackTable {
             case BISHOP -> bishop;
             case KNIGHT -> knight;
             case KING -> king;
+            case PAWN -> pawn;
             // King is trivial, pawns are handled differently
             default -> EMPTY;
         };
@@ -209,16 +227,15 @@ public class AttackTable {
      * method in comparison to {@link AttackTable#get(int)}
      */
     public static long getDirect(int piece, int position) {
-        return switch (piece & PIECE_MASK) {
+        return switch (Piece.is(piece, PAWN) ? piece : piece & PIECE_MASK) {
             case QUEEN -> directQueen[position];
             case ROOK -> directRook[position];
             case BISHOP -> directBishop[position];
             case KNIGHT -> directKnight[position];
             case KING -> directKing[position];
+            case WHITE | PAWN -> directPawn[position - 8];
+            case BLACK | PAWN -> directPawn[position - 8 + 48];
             default -> 0;
-            // TODO: Pawns do not have a mask here, and may be used
-            // TODO: for check detection, causing an issue where
-            // TODO: pawns giving check can be ignored.
         };
     }
 
