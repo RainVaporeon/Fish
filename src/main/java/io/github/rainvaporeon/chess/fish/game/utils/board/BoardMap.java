@@ -245,12 +245,12 @@ public class BoardMap implements Cloneable {
                     if(rank == 1 && (layout[arrIdx] & PIECE_MASK) == PAWN) {
                         boardMap.pawnAdvance |= BoardMap.getByteMask(file);
                     }
-                    boardMap.retain(layout[arrIdx] & PIECE_MASK, mask);
+                    boardMap.set(layout[arrIdx] & PIECE_MASK, mask);
                 } else {
                     if(rank == 6 && (layout[arrIdx] & PIECE_MASK) == PAWN) {
                         enemyBoardMap.pawnAdvance |= BoardMap.getByteMask(file);
                     }
-                    enemyBoardMap.retain(layout[arrIdx] & PIECE_MASK, mask);
+                    enemyBoardMap.set(layout[arrIdx] & PIECE_MASK, mask);
                 }
                 arrIdx++;
             }
@@ -354,7 +354,7 @@ public class BoardMap implements Cloneable {
             case KING -> verifyKing(srcPos, destPos, false);
             default -> throw new IllegalStateException(STR."Unexpected value: \{Integer.toHexString(srcPiece)}");
         };
-        if(this.revealsCheck(srcPiece, srcPos, destPos)) return false;
+        if(this.revealsCheck(srcPiece & PIECE_MASK, srcPos, destPos)) return false;
         return (handlerCode & ~PIECE_MASK) == 0;
     }
 
@@ -425,7 +425,8 @@ public class BoardMap implements Cloneable {
         // error.code() & 0x07 is not 0
         if(error != null && !forced) return error;
 
-        if(this.revealsCheck(srcPiece, srcPos, destPos)) return MovementEvent.REVEALS_CHECK;
+        // exclusion in castling: special move does not reflect to actual position
+        if(!castleFlag && this.revealsCheck(srcPiece & PIECE_MASK, srcPos, destPos)) return MovementEvent.REVEALS_CHECK;
 
         // Anything past this line is not going to be interrupted.
 
@@ -477,7 +478,7 @@ public class BoardMap implements Cloneable {
         // If we castled, it has already been handled internally via doCastle
         if(!(castleFlag || promoFlag)) {
             clear(srcPiece & ~COLOR_MASK, srcMask);
-            retain(srcPiece & ~COLOR_MASK, destMask);
+            set(srcPiece & ~COLOR_MASK, destMask);
         }
 
         if(info.turn == BLACK_TURN) {
@@ -500,20 +501,20 @@ public class BoardMap implements Cloneable {
     private boolean revealsCheck(int piece, int srcPos, int destPos) {
         long sourceMask = getMask(srcPos);
         long destMask = getMask(destPos);
-        int enemyPiece = enemyBoard.getSelfPieceAt(destPos, false) & PIECE_MASK;
+        int enemyPiece = enemyBoard.getSelfPieceAt(destPos, false);
         boolean flag = enemyPiece != NONE;
         try {
             this.clear(piece, sourceMask);
-            this.retain(piece, destMask);
+            this.set(piece, destMask);
             if(flag) {
                 enemyBoard.clear(enemyPiece, destMask);
             }
             return this.inCheck();
         } finally {
-            this.retain(piece, sourceMask);
+            this.set(piece, sourceMask);
             this.clear(piece, destMask);
             if(flag) {
-                enemyBoard.retain(enemyPiece, destMask);
+                enemyBoard.set(enemyPiece, destMask);
             }
         }
     }
@@ -602,7 +603,7 @@ public class BoardMap implements Cloneable {
                 long mask = getMask(srcPos);
                 long clearMask = getMask(destPos);
                 clear(PAWN, mask);
-                retain(QUEEN, clearMask);
+                set(QUEEN, clearMask);
                 enemyBoard.clear(destPiece & PIECE_MASK, clearMask);
                 return PROMOTION_FLAG;
             }
@@ -610,7 +611,7 @@ public class BoardMap implements Cloneable {
                 long mask = getMask(srcPos);
                 long clearMask = getMask(destPos);
                 clear(PAWN, mask);
-                retain(QUEEN, clearMask);
+                set(QUEEN, clearMask);
                 enemyBoard.clear(destPiece & PIECE_MASK, clearMask);
                 return PROMOTION_FLAG;
             }
@@ -726,7 +727,7 @@ public class BoardMap implements Cloneable {
         int destRank = BoardHelper.getRank(destPos);
         if(Math.abs(file - destFile) > 1) return MovementEvent.ILLEGAL.code();
         if(Math.abs(rank - destRank) > 1) return MovementEvent.ILLEGAL.code();
-        if(((1L << destPos) & ~this.getAttackMask()) == 0) return MovementEvent.REVEALS_CHECK.code();
+        if(((1L << destPos) & ~enemyBoard.getAttackMask()) == 0) return MovementEvent.REVEALS_CHECK.code();
         return 0;
     }
 
@@ -759,14 +760,14 @@ public class BoardMap implements Cloneable {
                 if(!shouldAttempt) return true;
                 this.king = this.king << 2;
                 this.clear(ROOK, K_PRESERVE_MASK);
-                this.retain(ROOK, this.king >>> 1);
+                this.set(ROOK, this.king >>> 1);
             } else {
                 if((WHITE_CASTLE_Q_ATTACKER_MASK & ~enemyAttackMask) == 0 || this.inCheck()) return false; // bit cleared; square was attacked (or in check)
                 if((WHITE_CASTLE_Q_BLOCKER_MASK & this.getBlockers()) != 0) return false; // has blockers
                 if(!shouldAttempt) return true;
                 this.king = this.king >>> 2;
                 this.clear(ROOK, Q_PRESERVE_MASK);
-                this.retain(ROOK, this.king << 1);
+                this.set(ROOK, this.king << 1);
             }
         } else {
             if(side == CASTLE_K_MASK) {
@@ -775,14 +776,14 @@ public class BoardMap implements Cloneable {
                 if(!shouldAttempt) return true;
                 this.king = this.king << 2;
                 this.clear(ROOK, BLACK_K_PRESERVE_MASK);
-                this.retain(ROOK, this.king >>> 1);
+                this.set(ROOK, this.king >>> 1);
             } else {
                 if((BLACK_CASTLE_Q_ATTACKER_MASK & ~enemyAttackMask) == 0 || this.inCheck()) return false; // bit cleared; square was attacked (or in check)
                 if((BLACK_CASTLE_Q_BLOCKER_MASK & this.getBlockers()) != 0) return false; // has blockers
                 if(!shouldAttempt) return true;
                 this.king = this.king >>> 2;
                 this.clear(ROOK, BLACK_Q_PRESERVE_MASK);
-                this.retain(ROOK, this.king << 1);
+                this.set(ROOK, this.king << 1);
             }
         }
         this.castle = 0; // castled
@@ -794,6 +795,7 @@ public class BoardMap implements Cloneable {
      * attack mask
      */
     public boolean inCheck() {
+        InternLogger.getLogger().debug(STR."Enemy board attack mask =\{Magic.visualize(enemyBoard.getAttackMask())}");
         return ((king & ~enemyBoard.getAttackMask()) == 0);
     }
 
@@ -807,7 +809,9 @@ public class BoardMap implements Cloneable {
      */
     private long getAttackMask() {
         long ll = 0L;
+        // total blockers
         long blockers = this.getBlockers();
+        // self pieces to be excluded from capture piece set
         long captureClearMask = this.getSelfBlocker();
         for(int i = 0; i < 64; i++) {
             int piece = this.getSelfPieceAt(i, false);
@@ -843,7 +847,7 @@ public class BoardMap implements Cloneable {
      * @param srcPiece the piece type
      * @param mask the mask
      */
-    private void retain(int srcPiece, long mask) {
+    private void set(int srcPiece, long mask) {
         switch (srcPiece) {
             case NONE -> {} // no-op
             case PAWN -> pawn |= mask;

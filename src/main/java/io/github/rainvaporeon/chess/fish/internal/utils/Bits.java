@@ -54,7 +54,7 @@ public class Bits {
     public static List<Move> convertBoardToMove(int src, long mask) {
         List<Move> list = new ArrayList<>(Long.bitCount(mask));
         for(int i = 0; i < 64; i++) {
-            long l = i == 0 ? 0 : 1L << (i - 1);
+            long l = 1L << i;
             if((mask & l) != 0) list.add(Move.of(src, i));
         }
         return list;
