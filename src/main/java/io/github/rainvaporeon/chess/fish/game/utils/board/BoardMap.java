@@ -11,6 +11,7 @@ import io.github.rainvaporeon.chess.fish.internal.InternLogger;
 import io.github.rainvaporeon.chess.fish.internal.annotation.Mask;
 import io.github.rainvaporeon.chess.fish.internal.annotation.MaskType;
 import io.github.rainvaporeon.chess.fish.internal.exceptions.SystemError;
+import io.github.rainvaporeon.chess.fish.internal.jnative.NativeMagicBoard;
 import io.github.rainvaporeon.chess.fish.internal.utils.Bits;
 import com.spiritlight.fishutils.collections.Pair;
 import com.spiritlight.fishutils.misc.annotations.Modifies;
@@ -31,8 +32,11 @@ import static io.github.rainvaporeon.chess.fish.game.utils.game.Move.FORWARD_OFF
 // TODO 2: It is possible for some checks (probably pawn) to only
 // TODO    permit captures/moves from king and not other pieces that
 // TODO    are capable of capturing the checking piece.
+//  (Probably fixed w/ bits mode)
 // TODO 3: It is possible that the checking piece cannot be captured
-// TODO    by other pieces that aren't the King. Needs further investigation.
+// TODO    by other pieces that aren't the King.
+//  Needs further investigation.
+// TODO 4: Pinned pieces cannot take the pinning piece for some reason.
 public class BoardMap implements Cloneable {
     private static final long PAWN_MASK   = 0xFF00;
     private static final long BISHOP_MASK = 0b00100100;
@@ -356,7 +360,7 @@ public class BoardMap implements Cloneable {
             case KING -> verifyKing(srcPos, destPos, false);
             default -> throw new IllegalStateException(STR."Unexpected value: \{Integer.toHexString(srcPiece)}");
         };
-        if(this.revealsCheck(srcPiece & PIECE_MASK, srcPos, destPos)) return false;
+        if(!(handlerCode == CASTLE_FLAG) && this.revealsCheck(srcPiece & PIECE_MASK, srcPos, destPos)) return false;
         return (handlerCode & ~PIECE_MASK) == 0;
     }
 
@@ -365,8 +369,9 @@ public class BoardMap implements Cloneable {
         BoardMap enemy = this.enemyBoard.clone();
         current.enemyBoard = enemy;
         enemy.enemyBoard = current;
-        current.info = info.clone();
-        enemy.info = enemyBoard.info.clone();
+        BoardInfo inf = info.clone();
+        current.info = inf;
+        enemy.info = inf;
         return current;
     }
 
@@ -600,7 +605,7 @@ public class BoardMap implements Cloneable {
         }
         if(!verify) {
             // promotion logic
-            // TODO: Ask what piece to move
+            // TODO: Ask what piece to promote to
             if(this.color == WHITE && destRank == 7) {
                 long mask = getMask(srcPos);
                 long clearMask = getMask(destPos);
@@ -627,8 +632,7 @@ public class BoardMap implements Cloneable {
 
     private int verifyKnight(int srcPos, int destPos) {
         if(this.checkMethod.useBits()) {
-            if(destPos == 0) return this.getSelfPieceAt(destPos, false) == 0 ? 0 : MovementEvent.ILLEGAL.code();
-            return (BoardMap.getMask(destPos) & (AttackTable.getMaskAt(KNIGHT, srcPos) & ~this.getBlockers())) == 0 ? 0 : MovementEvent.ILLEGAL.code();
+            return (BoardMap.getMask(destPos) & (AttackTable.getMaskAt(KNIGHT, srcPos) & ~this.getSelfBlocker())) != 0 ? 0 : MovementEvent.ILLEGAL.code();
         }
         // Honestly somewhat easy to check on this one
         // as knights skip over pieces
@@ -641,6 +645,10 @@ public class BoardMap implements Cloneable {
     }
 
     private int verifyBishop(int srcPos, int destPos) {
+        if(checkMethod.useBits()) {
+            return (getMask(destPos) & NativeMagicBoard.getBishop(this.getBlockers(), srcPos) & ~this.getSelfBlocker()) == 0 ? MovementEvent.ILLEGAL.code() : 0;
+        }
+
         int srcFile = BoardHelper.getFile(srcPos);
         int srcRank = BoardHelper.getRank(srcPos);
         int destFile = BoardHelper.getFile(destPos);
@@ -679,6 +687,9 @@ public class BoardMap implements Cloneable {
     }
 
     private int verifyRook(int srcPos, int destPos) {
+        if(checkMethod.useBits()) {
+            return (getMask(destPos) & NativeMagicBoard.getRook(this.getBlockers(), srcPos) & ~this.getSelfBlocker()) == 0 ? MovementEvent.ILLEGAL.code() : 0;
+        }
         int srcFile = BoardHelper.getFile(srcPos);
         int srcRank = BoardHelper.getRank(srcPos);
         int destFile = BoardHelper.getFile(destPos);
@@ -700,10 +711,12 @@ public class BoardMap implements Cloneable {
     }
 
     private int verifyQueen(int srcPos, int destPos) {
+        if(checkMethod.useBits()) {
+            return (getMask(destPos) & NativeMagicBoard.getQueen(this.getBlockers(), srcPos) & ~this.getSelfBlocker()) == 0 ? MovementEvent.ILLEGAL.code() : 0;
+        }
         return Math.max(verifyBishop(srcPos, destPos), verifyRook(srcPos, destPos));
     }
 
-    private static final int[] VALID_OFFSETS = {1, -1, 7, -7, 9, -9, 8, -8};
     @Special
     private int verifyKing(int srcPos, int destPos, boolean shouldCastle) {
         if(this.getSelfPieceAt(destPos, false) == (color | ROOK)) {
@@ -715,13 +728,8 @@ public class BoardMap implements Cloneable {
             }
         }
         if(this.checkMethod.useBits()) {
-            for(int i : VALID_OFFSETS) {
-                if(srcPos - destPos == i) {
-                    // if 0, means the destination got cleared by the attack mask, hence illegal
-                    return (BoardMap.getMask(destPos) & ~enemyBoard.getAttackMask()) != 0 ? 0 : MovementEvent.REVEALS_CHECK.code();
-                }
-            }
-            return MovementEvent.ILLEGAL.code();
+            long mask = AttackTable.getMaskAt(KING, srcPos);
+            return (getMask(destPos) & mask) != 0 ? 0 : MovementEvent.ILLEGAL.code();
         }
         int file = BoardHelper.getFile(srcPos);
         int rank = BoardHelper.getRank(srcPos);

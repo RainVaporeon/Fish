@@ -15,8 +15,6 @@ import io.github.rainvaporeon.chess.fish.internal.jnative.NativeMagicBoard;
 import io.github.rainvaporeon.chess.fish.internal.utils.Bits;
 import io.github.rainvaporeon.chess.fish.internal.utils.board.GameBitboard;
 import io.github.rainvaporeon.chess.fish.internal.utils.resources.Resources;
-import io.github.rainvaporeon.chess.fish.test.TestComponent;
-import io.github.rainvaporeon.chess.fish.test.Tests;
 import com.spiritlight.fishutils.misc.ThrowingRunnable;
 import com.spiritlight.fishutils.utils.Stopwatch;
 
@@ -99,16 +97,16 @@ public class Test {
         System.out.println("All test case passed! Congratulations!");
     }
 
-    private static long genRandomLongBits(int minBits, int maxBits) {
+    private static long genRandomLongBits() {
         Random random = new Random();
         long l = random.nextLong();
-        while(Long.bitCount(l) < minBits || Long.bitCount(l) > maxBits) l = random.nextLong();
+        while(Long.bitCount(l) < 8 || Long.bitCount(l) > 16) l = random.nextLong();
         return l;
     }
 
     private static void dumpMagic() {
         for(int i = 0; i < 64; i++) {
-            long blockerPattern = genRandomLongBits(8, 16);
+            long blockerPattern = genRandomLongBits();
             System.out.println("Blocker pattern:");
             System.out.println(Magic.visualize(blockerPattern));
             System.out.println("Queen:");
