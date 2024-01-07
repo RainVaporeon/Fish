@@ -74,7 +74,7 @@ public class BoardMap implements Cloneable {
         this.queen = queen;
         this.king = king;
         this.color = color;
-        this.checkMethod = CheckMethod.MANUAL;
+        this.checkMethod = CheckMethod.BITS;
         this.enemyBoard = null;
     }
 
@@ -805,7 +805,6 @@ public class BoardMap implements Cloneable {
      * attack mask
      */
     public boolean inCheck() {
-        InternLogger.getLogger().debug(STR."Enemy board attack mask =\{Magic.visualize(enemyBoard.getAttackMask())}");
         return ((king & ~enemyBoard.getAttackMask()) == 0);
     }
 
