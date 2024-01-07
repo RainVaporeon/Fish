@@ -28,15 +28,14 @@ import static io.github.rainvaporeon.chess.fish.game.utils.GameConstants.*;
 import static io.github.rainvaporeon.chess.fish.game.utils.game.Move.BACKWARD_OFFSET;
 import static io.github.rainvaporeon.chess.fish.game.utils.game.Move.FORWARD_OFFSET;
 
-// TODO: It is possible to capture pieces into getting checked. (how?)
-// TODO 2: It is possible for some checks (probably pawn) to only
+// TODO 1: It is possible for some checks (probably pawn) to only
 // TODO    permit captures/moves from king and not other pieces that
 // TODO    are capable of capturing the checking piece. (probably linked to #1)
 //  (Probably fixed w/ bits mode)
-// TODO 3: It is possible that the checking piece cannot be captured
+// TODO 2: It is possible that the checking piece cannot be captured
 // TODO    by other pieces that aren't the King. (probably linked to #1)
 //  Needs further investigation.
-// TODO 4: Pinned pieces cannot take the pinning piece for some reason. (probably linked to #1)
+// TODO 3: Pinned pieces cannot take the pinning piece for some reason. (probably linked to #1)
 public class BoardMap implements Cloneable {
     private static final long PAWN_MASK   = 0xFF00;
     private static final long BISHOP_MASK = 0b00100100;
@@ -732,7 +731,10 @@ public class BoardMap implements Cloneable {
         }
         if(this.checkMethod.useBits()) {
             long mask = AttackTable.getMaskAt(KING, srcPos);
-            return (getMask(destPos) & mask) != 0 ? 0 : MovementEvent.ILLEGAL.code();
+            long destMask = getMask(destPos);
+            long attackMask = enemyBoard.getAttackRay();
+            if((destMask & ~attackMask) == 0) return MovementEvent.ILLEGAL.code();
+            return (destMask & mask) != 0 ? 0 : MovementEvent.ILLEGAL.code();
         }
         int file = BoardHelper.getFile(srcPos);
         int rank = BoardHelper.getRank(srcPos);
@@ -829,6 +831,27 @@ public class BoardMap implements Cloneable {
             int piece = this.getSelfPieceAt(i, false);
             if(Piece.isSlidingPiece(piece)) {
                 ll |= Bits.getRayAttackMagic(blockers, i, piece) & ~captureClearMask;
+            } else {
+                ll |= AttackTable.getMaskAt(piece, i);
+            }
+        }
+        return ll;
+    }
+
+    /**
+     * Gets all the current squares this side can reach, including
+     * its own pieces.
+     * @return the ray mask
+     */
+    private long getAttackRay() {
+        long ll = 0L;
+        // total blockers
+        long blockers = this.getBlockers();
+        // self pieces to be excluded from capture piece set
+        for(int i = 0; i < 64; i++) {
+            int piece = this.getSelfPieceAt(i, false);
+            if(Piece.isSlidingPiece(piece)) {
+                ll |= Bits.getRayAttackMagic(blockers, i, piece);
             } else {
                 ll |= AttackTable.getMaskAt(piece, i);
             }
