@@ -9,7 +9,7 @@ import java.util.function.Consumer;
 
 public class LaunchArgs {
     private static final Map<String, Consumer<String>> optionMap = new HashMap<>() {{
-        put(null, s -> {});
+        put(null, _ -> {});
     }};
     private static final Map<String, String> argMap = new HashMap<>();
 
@@ -26,6 +26,10 @@ public class LaunchArgs {
             argMap.put(key, params);
         });
         optionMap.clear();
+    }
+
+    public static Map<String, String> options() {
+        return Map.copyOf(argMap);
     }
 
     public static String getOption(String option) {

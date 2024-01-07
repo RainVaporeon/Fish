@@ -28,15 +28,15 @@ import static io.github.rainvaporeon.chess.fish.game.utils.GameConstants.*;
 import static io.github.rainvaporeon.chess.fish.game.utils.game.Move.BACKWARD_OFFSET;
 import static io.github.rainvaporeon.chess.fish.game.utils.game.Move.FORWARD_OFFSET;
 
-// TODO: It is possible to capture pieces into getting checked.
+// TODO: It is possible to capture pieces into getting checked. (how?)
 // TODO 2: It is possible for some checks (probably pawn) to only
 // TODO    permit captures/moves from king and not other pieces that
-// TODO    are capable of capturing the checking piece.
+// TODO    are capable of capturing the checking piece. (probably linked to #1)
 //  (Probably fixed w/ bits mode)
 // TODO 3: It is possible that the checking piece cannot be captured
-// TODO    by other pieces that aren't the King.
+// TODO    by other pieces that aren't the King. (probably linked to #1)
 //  Needs further investigation.
-// TODO 4: Pinned pieces cannot take the pinning piece for some reason.
+// TODO 4: Pinned pieces cannot take the pinning piece for some reason. (probably linked to #1)
 public class BoardMap implements Cloneable {
     private static final long PAWN_MASK   = 0xFF00;
     private static final long BISHOP_MASK = 0b00100100;
@@ -55,12 +55,16 @@ public class BoardMap implements Cloneable {
     private long queen;
     private long king;
 
+    // TODO: Extract this to merge two map into one (probably saves like 12 bytes)
     private final int color;
     // Update: Deprecated the use of StableField and removed final
     //  to make cloning easier.
+    // TODO: Optionally clamp the two boards into one
     private BoardMap enemyBoard;
     // Consider this for castling, ~0xF0/0x0F to cancel one
+    // TODO: Extract this into a common castle byte (11/11)
     private int castle = 0xFF; // K=F0, Q=0F
+    // TODO: Remove this and check whether the pawn starts at 2nd/7th rank instead
     private int pawnAdvance = 0x0;
     private BoardInfo info;
 
@@ -369,7 +373,7 @@ public class BoardMap implements Cloneable {
         BoardMap enemy = this.enemyBoard.clone();
         current.enemyBoard = enemy;
         enemy.enemyBoard = current;
-        BoardInfo inf = info.clone();
+        BoardInfo inf = info.copy();
         current.info = inf;
         enemy.info = inf;
         return current;
@@ -383,12 +387,11 @@ public class BoardMap implements Cloneable {
         info.turn = turn;
     }
 
-    @Override
-    public BoardMap clone() {
+    @Override @SuppressWarnings("all")
+    protected BoardMap clone() {
         try {
             final BoardMap clone = (BoardMap) super.clone();
-            clone.info = info.clone();
-            clone.enemyBoard.info = enemyBoard.info.clone();
+            // assignment of mutable fields are done in fork()
             return clone;
         } catch (CloneNotSupportedException what) {
             throw new AssertionError(what);

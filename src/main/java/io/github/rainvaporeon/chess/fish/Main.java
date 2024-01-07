@@ -3,6 +3,7 @@ package io.github.rainvaporeon.chess.fish;
 import io.github.rainvaporeon.chess.fish.game.utils.board.BoardMap;
 import io.github.rainvaporeon.chess.fish.game.utils.board.Magic;
 import io.github.rainvaporeon.chess.fish.internal.InternLogger;
+import io.github.rainvaporeon.chess.fish.internal.command.ConsoleCommand;
 import io.github.rainvaporeon.chess.fish.internal.exceptions.SystemError;
 import io.github.rainvaporeon.chess.fish.internal.utils.boot.LaunchArgs;
 import io.github.rainvaporeon.chess.fish.internal.utils.boot.LaunchOption;
@@ -16,11 +17,17 @@ public class Main {
     private static final Logger log = Loggers.getLogger("Fish/Launch");
 
     public static void main(String[] args) {
+        init();
+    }
+
+    public static void init() {
         registerLaunchOptions(InternLogger.class, () -> {
             Consumer<String> out = s -> InternLogger.setEnabled(Boolean.parseBoolean(s));
-            return Pair.of("intern.logger", out);
+            return Pair.of("use-logger", out);
         });
-        registerLaunchOptions(SystemError.class, () -> Pair.of("system.error", _ -> {}));
+        registerLaunchOptions(SystemError.class, () -> Pair.of("system.error", _ -> {
+        }));
+        registerLaunchOptions(ConsoleCommand.class, () -> Pair.of("debug-mode", _ -> ConsoleCommand.init()));
 
         try {
             LaunchArgs.init();

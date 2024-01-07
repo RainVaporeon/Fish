@@ -1,6 +1,6 @@
 package io.github.rainvaporeon.chess.fish.game.utils.board;
 
-public class BoardInfo implements Cloneable {
+public class BoardInfo {
     /* package-private */ int enPassantSquare = 0;
     // Uses: WHITE, BLACK (0, 1)
     /* package-private */ int turn = 0;
@@ -17,12 +17,12 @@ public class BoardInfo implements Cloneable {
                 """, enPassantSquare, turn, halfMove, fullMove);
     }
 
-    @Override
-    public BoardInfo clone() {
-        try {
-            return (BoardInfo) super.clone();
-        } catch (CloneNotSupportedException e) {
-            throw new AssertionError();
-        }
+    public BoardInfo copy() {
+        BoardInfo info = new BoardInfo();
+        info.enPassantSquare = enPassantSquare;
+        info.turn = turn;
+        info.halfMove = halfMove;
+        info.fullMove = fullMove;
+        return info;
     }
 }
