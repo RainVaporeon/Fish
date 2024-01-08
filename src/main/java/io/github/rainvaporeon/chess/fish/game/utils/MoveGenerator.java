@@ -1,19 +1,19 @@
 package io.github.rainvaporeon.chess.fish.game.utils;
 
+import com.spiritlight.fishutils.collections.IntList;
 import io.github.rainvaporeon.chess.fish.game.Piece;
 import io.github.rainvaporeon.chess.fish.game.utils.board.AttackTable;
-import io.github.rainvaporeon.chess.fish.game.utils.board.BoardHelper;
 import io.github.rainvaporeon.chess.fish.game.utils.board.BoardMap;
 import io.github.rainvaporeon.chess.fish.game.utils.game.Move;
 import io.github.rainvaporeon.chess.fish.internal.InternLogger;
 import io.github.rainvaporeon.chess.fish.internal.utils.Bits;
-import com.spiritlight.fishutils.collections.IntList;
-import com.spiritlight.fishutils.misc.arrays.ReferenceArray;
-import com.spiritlight.fishutils.misc.arrays.primitive.LongArray;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
 
-import static io.github.rainvaporeon.chess.fish.game.Piece.*;
+import static io.github.rainvaporeon.chess.fish.game.Piece.NONE;
+import static io.github.rainvaporeon.chess.fish.game.Piece.PAWN;
 
 public class MoveGenerator {
     /**
@@ -51,7 +51,7 @@ public class MoveGenerator {
     }
 
     public List<Move> getValidMovesFor(int index) {
-        return getValidMovesFor(index, bitboard.getCheckMethod().useBits());
+        return getValidMovesFor(index, false);
     }
 
     /**
@@ -65,7 +65,7 @@ public class MoveGenerator {
             int piece = bitboard.getPieceAt(index);
             if(Piece.is(piece, PAWN)) return processPawn(index);
             if(Piece.is(piece, NONE)) return Collections.emptyList();
-            int[] possibleDestinations = Bits.bitList(AttackTable.getDirect(piece, index));
+            int[] possibleDestinations = Bits.bitList(Piece.isSlidingPiece(piece) ? Bits.getRayAttackMagic(bitboard.getBlockers() & ~(Piece.color(piece) == bitboard.getColor() ? bitboard.getSelfBlocker() : bitboard.getEnemyBoard().getSelfBlocker()), index, piece) : AttackTable.getDirect(piece, index));
             List<Move> moves = new LinkedList<>();
             for(int move : possibleDestinations) {
                 if(bitboard.canMove(index, move)) moves.add(Move.of(index, move));

@@ -4,6 +4,7 @@ import com.google.gson.JsonArray;
 import io.github.rainvaporeon.chess.fish.game.FEN;
 import io.github.rainvaporeon.chess.fish.game.Piece;
 import io.github.rainvaporeon.chess.fish.game.utils.GameState;
+import io.github.rainvaporeon.chess.fish.game.utils.MoveGenerator;
 import io.github.rainvaporeon.chess.fish.game.utils.board.AttackTable;
 import io.github.rainvaporeon.chess.fish.game.utils.board.BoardMap;
 import io.github.rainvaporeon.chess.fish.game.utils.board.Magic;
@@ -93,6 +94,9 @@ public class Test {
         timer.fence("magic.dump");
         dumpMagic();
         timer.record("magic.dump");
+        timer.fence("test.extremes");
+        testExtremeCases();
+        timer.record("test.extremes");
         System.out.println(timer.getRecordString());
         System.out.println("All test case passed! Congratulations!");
     }
@@ -102,6 +106,12 @@ public class Test {
         long l = random.nextLong();
         while(Long.bitCount(l) < 8 || Long.bitCount(l) > 16) l = random.nextLong();
         return l;
+    }
+
+    private static void testExtremeCases() {
+        BoardMap map = BoardMap.fromFENString("QQQQQQBk/Q6B/Q6Q/Q6Q/Q6Q/Q6Q/Q6Q/KQQQQQQQ w - - 0 1");
+        MoveGenerator gen = MoveGenerator.create(map);
+        assertEquals(gen.getAllValidMoves().size(), 265, "Extreme case move possibility failed");
     }
 
     private static void dumpMagic() {
@@ -115,7 +125,6 @@ public class Test {
             System.out.println(Magic.visualize(NativeMagicBoard.getBishop(blockerPattern, i)));
             System.out.println("Rook:");
             System.out.println(Magic.visualize(NativeMagicBoard.getRook(blockerPattern, i)));
-
         }
     }
 

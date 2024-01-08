@@ -416,12 +416,15 @@ public class BoardMap implements Cloneable {
         boolean promoFlag = handlerCode == PROMOTION_FLAG;
         MovementEvent error = translate(handlerCode);
         // error.code() & 0x07 is not 0
+        boolean specialFlag = (handlerCode & PIECE_MASK) != 0;
         if(error != null && !forced) return error;
 
         // exclusion in castling: special move does not reflect to actual position
         if(!castleFlag && this.revealsCheck(srcPiece & PIECE_MASK, srcPos, destPos)) return MovementEvent.REVEALS_CHECK;
 
         // Anything past this line is not going to be interrupted.
+        // Note: even though specialFlag checks for only the last 3 bits,
+        // the event translation code has fended off all the possible errors.
 
         info.halfMove++;
 
@@ -468,8 +471,10 @@ public class BoardMap implements Cloneable {
 
         // Past this line is when all moves are confirmed to be valid
 
-        // If we castled, it has already been handled internally via doCastle
-        if(!(castleFlag || promoFlag)) {
+        // Checking for special flags: If a special flag is on, it indicates
+        // that processing of piece checking has already been achieved and hence
+        // clear/retain does not need to be executed.
+        if(!specialFlag) {
             clear(srcPiece & ~COLOR_MASK, srcMask);
             set(srcPiece & ~COLOR_MASK, destMask);
         }
@@ -496,6 +501,8 @@ public class BoardMap implements Cloneable {
         long destMask = getMask(destPos);
         int enemyPiece = enemyBoard.getSelfPieceAt(destPos, false) & PIECE_MASK;
         boolean flag = enemyPiece != NONE;
+        // TODO: Find the cause of promotion moves/special moves passing NONE here.
+        if(this.getSelfPieceAt(srcPos, false) == NONE) return false;
         try {
             this.clear(piece, sourceMask);
             this.set(piece, destMask);
@@ -590,17 +597,17 @@ public class BoardMap implements Cloneable {
             if(this.color == WHITE && destRank == 7) {
                 long mask = getMask(srcPos);
                 long clearMask = getMask(destPos);
+                enemyBoard.clear(destPiece & PIECE_MASK, clearMask);
                 clear(PAWN, mask);
                 set(QUEEN, clearMask);
-                enemyBoard.clear(destPiece & PIECE_MASK, clearMask);
                 return PROMOTION_FLAG;
             }
             if(this.color == BLACK && destRank == 0) {
                 long mask = getMask(srcPos);
                 long clearMask = getMask(destPos);
+                enemyBoard.clear(destPiece & PIECE_MASK, clearMask);
                 clear(PAWN, mask);
                 set(QUEEN, clearMask);
-                enemyBoard.clear(destPiece & PIECE_MASK, clearMask);
                 return PROMOTION_FLAG;
             }
         }
@@ -809,9 +816,6 @@ public class BoardMap implements Cloneable {
                 pieceAttacks = Bits.getRayAttackMagic(blockers, i, piece) & ~captureClearMask;
             } else {
                 pieceAttacks = AttackTable.getMaskAt(piece, i);
-            }
-            if((enemyBoard.king & ~pieceAttacks) == 0) {
-                InternLogger.getLogger().debug(STR."Piece \{Piece.asString(piece)} @ index \{i} can capture the enemy king.");
             }
             ll |= pieceAttacks;
         }
