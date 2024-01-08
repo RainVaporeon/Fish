@@ -61,6 +61,7 @@ public class MoveGenerator {
      * @return a list of possible moves
      */
     public List<Move> getValidMovesFor(int index, boolean bits) {
+        // TODO: Bits mode will fail at the extreme case test case
         if(bits) {
             int piece = bitboard.getPieceAt(index);
             if(Piece.is(piece, PAWN)) return processPawn(index);
