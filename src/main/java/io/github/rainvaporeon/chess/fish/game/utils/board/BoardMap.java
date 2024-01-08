@@ -28,14 +28,6 @@ import static io.github.rainvaporeon.chess.fish.game.utils.GameConstants.*;
 import static io.github.rainvaporeon.chess.fish.game.utils.game.Move.BACKWARD_OFFSET;
 import static io.github.rainvaporeon.chess.fish.game.utils.game.Move.FORWARD_OFFSET;
 
-// TODO 1: It is possible for some checks (probably pawn) to only
-// TODO    permit captures/moves from king and not other pieces that
-// TODO    are capable of capturing the checking piece. (probably linked to #1)
-//  (Probably fixed w/ bits mode)
-// TODO 2: It is possible that the checking piece cannot be captured
-// TODO    by other pieces that aren't the King. (probably linked to #1)
-//  Needs further investigation.
-// TODO 3: Pinned pieces cannot take the pinning piece for some reason. (probably linked to #1)
 public class BoardMap implements Cloneable {
     private static final long PAWN_MASK   = 0xFF00;
     private static final long BISHOP_MASK = 0b00100100;
@@ -502,7 +494,7 @@ public class BoardMap implements Cloneable {
     private boolean revealsCheck(int piece, int srcPos, int destPos) {
         long sourceMask = getMask(srcPos);
         long destMask = getMask(destPos);
-        int enemyPiece = enemyBoard.getSelfPieceAt(destPos, false);
+        int enemyPiece = enemyBoard.getSelfPieceAt(destPos, false) & PIECE_MASK;
         boolean flag = enemyPiece != NONE;
         try {
             this.clear(piece, sourceMask);
@@ -521,9 +513,7 @@ public class BoardMap implements Cloneable {
     }
 
     public boolean isCheckmate() {
-        InternLogger.getLogger().debug(STR."king:\{this.king};other:\{this.isStalemate()},\{this.inCheck()}");
-        InternLogger.getLogger().debug(STR."bking:\{enemyBoard.king};other:\{enemyBoard.isStalemate()},\{enemyBoard.inCheck()}");
-        return this.king == 0 || (this.isStalemate() && this.inCheck());
+       return this.king == 0 || (this.isStalemate() && this.inCheck());
     }
 
     public boolean isStalemate() {
@@ -814,11 +804,16 @@ public class BoardMap implements Cloneable {
         long captureClearMask = this.getSelfBlocker();
         for(int i = 0; i < 64; i++) {
             int piece = this.getSelfPieceAt(i, false);
+            long pieceAttacks;
             if(Piece.isSlidingPiece(piece)) {
-                ll |= Bits.getRayAttackMagic(blockers, i, piece) & ~captureClearMask;
+                pieceAttacks = Bits.getRayAttackMagic(blockers, i, piece) & ~captureClearMask;
             } else {
-                ll |= AttackTable.getMaskAt(piece, i);
+                pieceAttacks = AttackTable.getMaskAt(piece, i);
             }
+            if((enemyBoard.king & ~pieceAttacks) == 0) {
+                InternLogger.getLogger().debug(STR."Piece \{Piece.asString(piece)} @ index \{i} can capture the enemy king.");
+            }
+            ll |= pieceAttacks;
         }
         return ll;
     }
