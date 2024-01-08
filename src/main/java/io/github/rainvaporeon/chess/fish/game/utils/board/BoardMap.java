@@ -63,8 +63,6 @@ public class BoardMap implements Cloneable {
     // Consider this for castling, ~0xF0/0x0F to cancel one
     // TODO: Extract this into a common castle byte (11/11)
     private int castle = 0xFF; // K=F0, Q=0F
-    // TODO: Remove this and check whether the pawn starts at 2nd/7th rank instead
-    private int pawnAdvance = 0x0;
     private BoardInfo info;
 
     private CheckMethod checkMethod;
@@ -251,14 +249,8 @@ public class BoardMap implements Cloneable {
             for(int file = 7; file >= 0; file--) {
                 long mask = BoardMap.getFENMask((rank * 8) + file);
                 if((layout[arrIdx] & COLOR_MASK) == WHITE) {
-                    if(rank == 1 && (layout[arrIdx] & PIECE_MASK) == PAWN) {
-                        boardMap.pawnAdvance |= BoardMap.getByteMask(file);
-                    }
                     boardMap.set(layout[arrIdx] & PIECE_MASK, mask);
                 } else {
-                    if(rank == 6 && (layout[arrIdx] & PIECE_MASK) == PAWN) {
-                        enemyBoardMap.pawnAdvance |= BoardMap.getByteMask(file);
-                    }
                     enemyBoardMap.set(layout[arrIdx] & PIECE_MASK, mask);
                 }
                 arrIdx++;
@@ -554,7 +546,7 @@ public class BoardMap implements Cloneable {
     // TODO: This is too complex for our own goods.
     // Simplifications may be needed.
     // Would having 4 if-statement to check for advancing and captures be better?
-    @Modifies({"info.enPassantSquare", "pawnAdvance"})
+    @Modifies({"info.enPassantSquare"})
     private int verifyPawn(int srcPos, int destPos, int destPiece, boolean verify) {
         int file = BoardHelper.getFile(srcPos);
         int destFile = BoardHelper.getFile(destPos);
@@ -589,11 +581,8 @@ public class BoardMap implements Cloneable {
             // tried to capture and move two squares forward
             if(file != destFile) return MovementEvent.ILLEGAL.code();
             // check if pawn can advance two squares forward
-            if((pawnAdvance & getByteMask(file)) != 0) {
-                if(BoardHelper.getRank(srcPos) != (this.color == WHITE ? 1 : 6)) {
-                    return MovementEvent.ILLEGAL.code();
-                }
-            } else {
+            // NOTE: This was recently changed in favor of wiping pawnAdvance field
+            if(BoardHelper.getRank(srcPos) != (this.color == WHITE ? 1 : 6)) {
                 return MovementEvent.ILLEGAL.code();
             }
             // tried to capture two squares forward
@@ -623,10 +612,6 @@ public class BoardMap implements Cloneable {
                 set(QUEEN, clearMask);
                 enemyBoard.clear(destPiece & PIECE_MASK, clearMask);
                 return PROMOTION_FLAG;
-            }
-            // A patch for when a pawn changes file on its next move
-            if(BoardHelper.getRank(srcPos) == (this.color == WHITE ? 1 : 6)) {
-                pawnAdvance &= ~getByteMask(file);
             }
         }
         return 0;
@@ -923,8 +908,6 @@ public class BoardMap implements Cloneable {
         BoardMap black = new BoardMap(blackPawns, blackBishop, blackKnight, blackRook, blackQueen, blackKing, BLACK);
         white.enemyBoard = black;
         black.enemyBoard = white;
-        white.pawnAdvance = 0xFF;
-        black.pawnAdvance = 0xFF;
         BoardInfo sharedBoardInfo = new BoardInfo();
         white.info = sharedBoardInfo;
         black.info = sharedBoardInfo;
@@ -979,9 +962,9 @@ public class BoardMap implements Cloneable {
                 Rook  :%s
                 Queen :%s
                 King  :%s
-                Board Color: %s; Castle flag: %s; Pawn advance mask: %s
+                Board Color: %s; Castle flag: %s
                 Board Info: %s
-                """, pawn, knight, bishop, rook, queen, king, this.color, Integer.toHexString(this.castle), Integer.toBinaryString(pawnAdvance) , this.info);
+                """, pawn, knight, bishop, rook, queen, king, this.color, Integer.toHexString(this.castle), this.info);
     }
 
     public class BoardItr implements Iterator<Long> {

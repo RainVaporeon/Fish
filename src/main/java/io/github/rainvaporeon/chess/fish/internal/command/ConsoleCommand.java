@@ -18,6 +18,7 @@ public class ConsoleCommand {
     }
 
     public static void init() {
+
         if (inited.get()) return;
         inited.set(true);
         Thread.ofVirtual().name("ConsoleCommand/IO").start(() -> {
