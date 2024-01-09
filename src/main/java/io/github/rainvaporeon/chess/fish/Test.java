@@ -3,12 +3,11 @@ package io.github.rainvaporeon.chess.fish;
 import com.google.gson.JsonArray;
 import io.github.rainvaporeon.chess.fish.game.FEN;
 import io.github.rainvaporeon.chess.fish.game.Piece;
-import io.github.rainvaporeon.chess.fish.game.utils.GameState;
 import io.github.rainvaporeon.chess.fish.game.utils.MoveGenerator;
 import io.github.rainvaporeon.chess.fish.game.utils.board.AttackTable;
 import io.github.rainvaporeon.chess.fish.game.utils.board.BoardMap;
 import io.github.rainvaporeon.chess.fish.game.utils.board.Magic;
-import io.github.rainvaporeon.chess.fish.game.utils.game.BoardEvaluator;
+import io.github.rainvaporeon.chess.fish.internal.game.eval.BoardEvaluator;
 import io.github.rainvaporeon.chess.fish.game.utils.game.Move;
 import io.github.rainvaporeon.chess.fish.game.utils.game.MovementEvent;
 import io.github.rainvaporeon.chess.fish.internal.InternLogger;
@@ -108,6 +107,10 @@ public class Test {
         return l;
     }
 
+    private static void testEngineEvalWithNDepth(int nDepths) {
+
+    }
+
     private static void testExtremeCases() {
         BoardMap map = BoardMap.fromFENString("QQQQQQBk/Q6B/Q6Q/Q6Q/Q6Q/Q6Q/Q6Q/KQQQQQQQ w - - 0 1");
         MoveGenerator gen = MoveGenerator.create(map);
@@ -170,7 +173,7 @@ public class Test {
     private static void testMapEvaluation() {
         BoardMap map = BoardMap.initialize();
 
-        double rating = BoardEvaluator.evaluate(map, GameState.EARLY_GAME);
+        double rating = new BoardEvaluator(map).evaluate();
         System.out.println(STR."Evaluate rating = \{rating}");
     }
 
@@ -232,7 +235,7 @@ public class Test {
     private static void testPlay() {
         assertSuccess(() -> {
             BoardMap map = BoardMap.initialize();
-            System.out.println(STR."Evaluation: \{BoardEvaluator.evaluateFormatted(map, GameState.EARLY_GAME)}");
+            System.out.println(STR."Evaluation: \{new BoardEvaluator(map).evaluateFormatted()}");
 
             System.out.println("-".repeat(32));
             System.out.println(map.boardView());
@@ -243,7 +246,7 @@ public class Test {
             System.out.println("Playing e5");
             map.update("e7, e5");
 
-            System.out.println(STR."Evaluation: \{BoardEvaluator.evaluateFormatted(map, GameState.EARLY_GAME)}");
+            System.out.println(STR."Evaluation: \{new BoardEvaluator(map).evaluateFormatted()}");
 
             System.out.println("-".repeat(32));
             System.out.println(map.boardView());
@@ -261,7 +264,7 @@ public class Test {
             System.out.println(map.boardView());
             System.out.println(map.flatBoardView());
 
-            System.out.println(STR."Evaluation: \{BoardEvaluator.evaluateFormatted(map, GameState.MIDDLE_GAME)}");
+            System.out.println(STR."Evaluation: \{new BoardEvaluator(map).evaluateFormatted()}");
         }, "Unexpected error whilst evaluating position");
     }
 

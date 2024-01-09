@@ -141,6 +141,14 @@ public class BoardMap implements Cloneable {
         }
     }
 
+    public GameState getState() {
+        if(this.info.fullMove <= 10) {
+            return GameState.EARLY_GAME;
+        } else {
+            return this.queen == 0 && enemyBoard.queen == 0 ? GameState.END_GAME : GameState.MIDDLE_GAME;
+        }
+    }
+
     public Pair<GameState, EndType> getGameState() {
         if(info.halfMove >= 100) return Pair.of(GameState.GAME_END, EndType.DRAW_50_MOVE);
         if(this.isCheckmate()) {
