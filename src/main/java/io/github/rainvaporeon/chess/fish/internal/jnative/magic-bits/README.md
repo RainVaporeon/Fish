@@ -1,5 +1,7 @@
 # magic-bits
 
+*This library is taken from [https://github.com/goutham/magic-bits](https://github.com/goutham/magic-bits), please check it out for the original.*
+
 A C++ header-only library to aid in developing super fast move-generation and evaluation routines in chess programs.
 
 ## Background
